@@ -5,6 +5,7 @@ from django.contrib.auth.models import Group
 
 CustomUser = get_user_model()
 
+
 class CustomUserAdmin(UserAdmin):
     add_form_template = "admin/auth/user/add_form.html"
     change_user_password_template = None
@@ -30,10 +31,10 @@ class CustomUserAdmin(UserAdmin):
         ),
     )
     model = CustomUser
-    list_display = ['username', 'is_staff', 'last_login']
+    list_display = ["username", "is_staff", "last_login"]
     list_filter: list[str] = []
     search_fields: list[str] = []
-    
+
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.unregister(Group)

@@ -8,6 +8,7 @@ class Recipe(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     origin_url = models.URLField(blank=True)
 
+
 class Ingredient(models.Model):
     name_no = models.CharField(max_length=64, unique=True, null=True, blank=True)
     name_en = models.CharField(max_length=64, unique=True, null=True, blank=True)
@@ -16,15 +17,30 @@ class Ingredient(models.Model):
     name_it = models.CharField(max_length=64, unique=True, null=True, blank=True)
     is_ubiquitous = models.BooleanField(default=False)
 
+    def get_names(self) -> list[str | None]:
+        """
+        Returns the names of the ingredient as a list
+        """
+        return [
+            self.__getattribute__(field.name)
+            for field in self._meta.fields
+            if field.name.startswith("name_")
+        ]
+
     def clean(self):
-        if not any([self.name_no, self.name_en, self.name_de, self.name_fr, self.name_it]):
+        if not any(self.get_names()):
             raise ValidationError("Ingredient must have at least one name!")
         return super().clean()
 
 
 class RecipeIngredient(models.Model):
-    recipe = models.ForeignKey(to=Recipe, on_delete=models.CASCADE, related_name="recipe_ingredients")
-    base_ingredient = models.ForeignKey(to=Ingredient, on_delete=models.PROTECT, related_name="recipe_ingredients")
+    recipe = models.ForeignKey(
+        to=Recipe, on_delete=models.CASCADE, related_name="recipe_ingredients"
+    )
+    base_ingredient = models.ForeignKey(
+        to=Ingredient,
+        on_delete=models.PROTECT,
+        related_name="recipe_ingredients",
+    )
     name_in_recipe = models.CharField(max_length=64)
     is_optional = models.BooleanField(default=False)
-

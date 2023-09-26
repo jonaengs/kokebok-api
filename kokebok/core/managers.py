@@ -1,7 +1,7 @@
-from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth.base_user import AbstractBaseUser
+from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 
-# UserManager and User classes inspired by: https://simpleisbetterthancomplex.com/tutorial/2016/07/22/how-to-extend-django-user-model.html
+
+# UserManager and User classes inspired by: https://simpleisbetterthancomplex.com/tutorial/2016/07/22/how-to-extend-django-user-model.html # noqa
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
@@ -10,8 +10,8 @@ class UserManager(BaseUserManager):
         Creates and saves a User with the given username and password.
         """
         if not username:
-            raise ValueError('The given username must be set')
-        
+            raise ValueError("The given username must be set")
+
         # User the default normalize_username method
         username = AbstractBaseUser.normalize_username(username)
         user = self.model(username=username, **extra_fields)
