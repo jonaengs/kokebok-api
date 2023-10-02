@@ -8,6 +8,12 @@ class Recipe(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     origin_url = models.URLField(blank=True)
 
+    def __repr__(self) -> str:
+        return self.title
+
+    def __str__(self) -> str:
+        return repr(self)
+
 
 class Ingredient(models.Model):
     name_no = models.CharField(max_length=64, unique=True, null=True, blank=True)
@@ -32,6 +38,12 @@ class Ingredient(models.Model):
             raise ValidationError("Ingredient must have at least one name!")
         return super().clean()
 
+    def __repr__(self) -> str:
+        return "|".join(name for name in self.get_names() if name)
+
+    def __str__(self) -> str:
+        return repr(self)
+
 
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
@@ -44,3 +56,9 @@ class RecipeIngredient(models.Model):
     )
     name_in_recipe = models.CharField(max_length=64)
     is_optional = models.BooleanField(default=False)
+
+    def __repr__(self) -> str:
+        return self.recipe.title + ": " + self.name_in_recipe
+
+    def __str__(self) -> str:
+        return repr(self)
