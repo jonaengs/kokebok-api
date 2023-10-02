@@ -2,4 +2,7 @@ fly.toml
 .git/
 *.sqlite3
 .venv
-.env
+.env*
+
+# Add docker-compose file to make sure that fly doesn't use it and deploy a debug build
+docker-compose.yml

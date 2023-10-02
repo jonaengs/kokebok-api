@@ -4,5 +4,5 @@
 *.sqlite3
 .mypy_cache
 *.env*
-!.env.dist
+!.env.dev
 poetry.toml

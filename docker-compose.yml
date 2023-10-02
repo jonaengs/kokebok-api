@@ -1,0 +1,28 @@
+version: '3.7'
+
+# NOTE: This file is only intended to be used for local development!
+services:
+  api:
+    build: ./
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./kokebok/:/usr/src/kokebok-api/
+    ports:
+      - 8000:8000
+    environment:
+      - ENV_FILE=.env.dev
+      - DATABASE_URL=postgres://dev:dev@db:5432/kokebok-api-dev
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=dev
+      - POSTGRES_PASSWORD=dev
+      - POSTGRES_DB=kokebok-api-dev
+
+volumes:
+  postgres_data:

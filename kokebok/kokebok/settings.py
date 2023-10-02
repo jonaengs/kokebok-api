@@ -4,12 +4,17 @@ import environ
 from django.core.management.utils import get_random_secret_key
 
 # Declare env vars with their type and default value
-env = environ.Env(DEBUG=(bool, False), HOST=(str, ""))
+env = environ.Env(
+    #
+    DEBUG=(bool, False),
+    ENV_FILE=(str, ".env"),  # Defauly to prod settings file
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-environ.Env.read_env(BASE_DIR / ".env")
+# Read .env file. "Live" env variables have precedence over .env file contents
+env.read_env(BASE_DIR / env("ENV_FILE"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -20,9 +25,9 @@ DEBUG = env("DEBUG")
 # Crash if secret key not defined and we're not in debug mode
 SECRET_KEY = env.str("SECRET_KEY", default=get_random_secret_key())
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"] + ([env("HOST")] if env("HOST") else [])
+ALLOWED_HOSTS = env("ALLOWED_HOSTS").split(" ")
 
-CSRF_TRUSTED_ORIGINS = ["https://" + env("HOST")]
+CSRF_TRUSTED_ORIGINS = ["https://" + host for host in ALLOWED_HOSTS]
 
 AUTH_USER_MODEL = "core.User"
 
@@ -78,10 +83,6 @@ WSGI_APPLICATION = "kokebok.wsgi.application"
 
 DATABASES = {
     "default": env.db(),
-    # "extra": {
-    #     "ENGINE": "django.db.backends.sqlite3",
-    #     "NAME": BASE_DIR / "db.sqlite3",
-    # }
 }
 
 
