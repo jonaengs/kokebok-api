@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.forms import ValidationError
 
@@ -6,7 +7,7 @@ class Recipe(models.Model):
     title = models.CharField(max_length=200, blank=False)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    origin_url = models.URLField(blank=True)
+    origin_url = models.URLField(blank=True, null=True, unique=True)
 
     def __repr__(self) -> str:
         return self.title
@@ -46,6 +47,18 @@ class Ingredient(models.Model):
 
 
 class RecipeIngredient(models.Model):
+    class Measurements(models.Choices):
+        GRAMS = "g"
+        KILOGRAMS = "kg"
+        LITERS = "l"
+        DECILITERS = "dl"
+        CENTILITERS = "cl"
+        MILLILITERS = "ml"
+        TABLESPOONS = "tbsp"
+        TEASPOONS = "tsp"
+        COUNT = ""
+        SLICES = "slices"
+
     recipe = models.ForeignKey(
         to=Recipe, on_delete=models.CASCADE, related_name="recipe_ingredients"
     )
@@ -56,6 +69,24 @@ class RecipeIngredient(models.Model):
     )
     name_in_recipe = models.CharField(max_length=64)
     is_optional = models.BooleanField(default=False)
+
+    # Name of the sub-recipe the ingredient is part of. Optional.
+    group_name = models.CharField(max_length=128, blank=True)
+
+    # The amount to use when making the base recipe
+    base_amount = models.FloatField(
+        blank=True, null=True, validators=[MinValueValidator(0.0)]
+    )
+    measurement = models.CharField(
+        max_length=16,
+        blank=True,
+        choices=Measurements.choices,
+    )
+
+    def clean(self):
+        if bool(self.base_amount) != bool(self.measurement):
+            raise ValidationError("base_amount and measurement must be set or None")
+        return super().clean()
 
     def __repr__(self) -> str:
         return self.recipe.title + ": " + self.name_in_recipe
