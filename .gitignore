@@ -3,3 +3,6 @@
 .venv/
 *.sqlite3
 .mypy_cache
+*.env*
+!.env.dist
+poetry.toml
