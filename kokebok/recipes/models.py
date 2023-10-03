@@ -5,9 +5,21 @@ from django.forms import ValidationError
 
 class Recipe(models.Model):
     title = models.CharField(max_length=200, blank=False)
-    description = models.TextField(blank=True)
+    ingress = models.TextField(blank=True)
+    content = models.TextField(blank=True)
+    hero_image = models.ImageField(blank=True, upload_to="recipes/banners")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Numeric data
+    total_time = models.IntegerField(blank=True, validators=[MinValueValidator(0)])
+    servings = models.IntegerField(blank=True, validators=[MinValueValidator(0)])
+
+    # For example, if the recipe has an accompanying youtube video
+    video_url = models.URLField(blank=True)
+    # Source url if scraped or otherwise retrieved from a web page
     origin_url = models.URLField(blank=True, null=True, unique=True)
+    # For specifying any other sources: books, people, ...
+    other_source = models.CharField(max_length=256, blank=True)
 
     def __repr__(self) -> str:
         return self.title
@@ -66,8 +78,9 @@ class RecipeIngredient(models.Model):
         to=Ingredient,
         on_delete=models.PROTECT,
         related_name="recipe_ingredients",
+        blank=True,  # In case the base ingredient hasn't been added yet
     )
-    name_in_recipe = models.CharField(max_length=64)
+    name_in_recipe = models.CharField(max_length=128)
     is_optional = models.BooleanField(default=False)
 
     # Name of the sub-recipe the ingredient is part of. Optional.

@@ -20,6 +20,10 @@
 3. (First time only) Run `docker-compose exec api python manage.py migrate --noinput`
 
 
+### Other stuff
+To quickly test out smaller scripts within the Django environment, run `python manage.py shell -c exec(open(<file_path>).read())`.
+
+
 ## Deploying to Fly.io
 0. (First time) Log into fly locally by running `fly auth login`. Then run `fly launch` to configure the application. Remember to update `settings.py` and your `.env` files too!
 2. Run `fly deploy`

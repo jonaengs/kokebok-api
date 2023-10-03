@@ -76,6 +76,16 @@ def recipe_data(_request):
     return recipes
 
 
+class ScrapeUrl(Schema):
+    url: str = Field(description="url of the recipe you want scraped")
+
+
+@api.post("scrape")
+def scrape_recipe(_request, data: ScrapeUrl):
+    # TODO: Fill out
+    return f"{data.url}"
+
+
 urlpatterns = [
     path("recipes/", api.urls),
 ]
