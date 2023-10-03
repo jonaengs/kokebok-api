@@ -14,12 +14,12 @@ _recipes = [
     Recipe(
         id=1001,
         title="Fischsuppe",
-        description="<h1>Die beste Fischsuppe der Welt!</h1>\n<p>\nSo schaffst du es: ...\n\n</p>",  # noqa
+        content="<h1>Die beste Fischsuppe der Welt!</h1>\n<p>\nSo schaffst du es: ...\n\n</p>",  # noqa
     ),
     Recipe(
         id=1002,
         title="Salzwasser",
-        description="Geben Sie das Salz ins Wasser. Das ist alles. Du bist fertig!",  # noqa
+        content="Geben Sie das Salz ins Wasser. Das ist alles. Du bist fertig!",  # noqa
     ),
 ]
 

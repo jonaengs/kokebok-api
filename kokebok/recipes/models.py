@@ -11,8 +11,12 @@ class Recipe(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Numeric data
-    total_time = models.IntegerField(blank=True, validators=[MinValueValidator(0)])
-    servings = models.IntegerField(blank=True, validators=[MinValueValidator(0)])
+    total_time = models.IntegerField(
+        null=True, blank=True, validators=[MinValueValidator(0)]
+    )
+    servings = models.IntegerField(
+        null=True, blank=True, validators=[MinValueValidator(0)]
+    )
 
     # For example, if the recipe has an accompanying youtube video
     video_url = models.URLField(blank=True)
