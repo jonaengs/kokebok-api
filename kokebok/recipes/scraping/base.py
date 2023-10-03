@@ -26,7 +26,7 @@ HTML = str
 # of this class to be the recipe_scrapers class for the
 # site we're scraping. So for example, TineNoScraper's class
 # hierarchy would look like:
-# TineNoScraper < Scraper < TineNo < AbstractScraper
+# TineNoScraper < MyScraper < TineNo < AbstractScraper
 class MyScraper(AbstractScraper):
     def ingredient_groups(  # type: ignore
         self,

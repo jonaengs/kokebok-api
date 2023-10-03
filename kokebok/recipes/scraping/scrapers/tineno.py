@@ -18,10 +18,10 @@ from w3lib.html import get_base_url
 
 
 class TineNoScraper(ScraperMixin, TineNo):
-    def __init__(self, url: str) -> None:
+    def __init__(self, url: str, html: str | None = None) -> None:
         # We basically parse the page three times because
         # recipe_scrapers doesn't give enough information
-        self.page_raw = requests.get(url).content.decode("utf-8")
+        self.page_raw = html or requests.get(url).content.decode("utf-8")
         self.json_ld_data = extruct.extract(
             self.page_raw,
             syntaxes=["json-ld"],
