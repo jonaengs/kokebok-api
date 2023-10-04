@@ -7,7 +7,7 @@ import extruct
 import requests
 from bs4 import BeautifulSoup, Tag
 from recipe_scrapers.tineno import TineNo
-from recipes.scraping.base import HTML, ScrapedRecipeIngredient, ScraperMixin
+from recipes.scraping.base import HTML, MyScraper, ScrapedRecipeIngredient
 from w3lib.html import get_base_url
 
 # Tests TODO:
@@ -17,7 +17,7 @@ from w3lib.html import get_base_url
 # * Check that it conforms to the expected interface (wrt methods and return types)
 
 
-class TineNoScraper(ScraperMixin, TineNo):
+class TineNoScraper(MyScraper, TineNo):
     def __init__(self, url: str, html: str | None = None) -> None:
         # We basically parse the page three times because
         # recipe_scrapers doesn't give enough information

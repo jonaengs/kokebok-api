@@ -8,10 +8,16 @@ from recipes.scraping.base import MyScraper
 from recipes.scraping.registry import _registry
 
 
+# Protocol for classes implementing MyScraper.
+# Until we get typing intersections with the '&' operator, this will have to do.
+class MyScraperProtocol(AbstractScraper, MyScraper):
+    ...
+
+
 class RegistryLookupResult(NamedTuple):
     host_in_my_registry: bool
     host_in_scrapers_registry: bool
-    scraper: AbstractScraper | MyScraper
+    scraper: AbstractScraper | MyScraperProtocol
 
 
 def get_scraper(url, html=None) -> RegistryLookupResult:

@@ -20,6 +20,7 @@ COPY pyproject.toml poetry.lock /code/
 RUN poetry config virtualenvs.create false
 RUN poetry install --only main --no-root --no-interaction
 COPY ./kokebok /code
+RUN ls
 
 RUN python manage.py collectstatic --noinput
 

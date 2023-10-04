@@ -1,14 +1,7 @@
+from typing import Protocol
+
 from ninja import ModelSchema
-from recipe_scrapers._abstract import AbstractScraper
-from recipes.models import Recipe, RecipeIngredient
-
-
-class ScraperMixin:
-    def __init__(self, url: str, *args, **kwargs):
-        existing = Recipe.objects.filter(origin_url=url).exists()
-        if existing:
-            raise ValueError("URL has already been scraped")
-        super(ScraperMixin, self).__init__(url, *args, **kwargs)  # type: ignore
+from recipes.models import RecipeIngredient
 
 
 class ScrapedRecipeIngredient(ModelSchema):
@@ -22,19 +15,14 @@ class ScrapedRecipeIngredient(ModelSchema):
 HTML = str
 
 
-# TODO: Look into whether we can dynamically set the parent
-# of this class to be the recipe_scrapers class for the
-# site we're scraping. So for example, TineNoScraper's class
-# hierarchy would look like:
-# TineNoScraper < MyScraper < TineNo < AbstractScraper
-class MyScraper(AbstractScraper):
-    def ingredient_groups(  # type: ignore
+class MyScraper(Protocol):
+    def ingredient_groups(
         self,
     ) -> dict[str, list[ScrapedRecipeIngredient]]:
         ...
 
-    def ingress(self) -> str:  # type: ignore
+    def ingress(self) -> str:
         ...
 
-    def content(self) -> HTML:  # type: ignore
+    def content(self) -> HTML:
         ...

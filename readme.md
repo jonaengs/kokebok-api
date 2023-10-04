@@ -30,3 +30,10 @@ To quickly test out smaller scripts within the Django environment, run `python m
 3. (Run `fly open` to open the app in your browser)
 
 See [this](https://fly.io/django-beats/deploying-django-to-production/#deploying-to-fly-io) article from fly.io for an introduction to deploying Django applications to their service.
+
+
+## Development
+
+### Wrong auto-import paths using VSCode/Pylance
+1. Navigate to the `Python > Analysis: Extra Paths` (settings editor) or `"python.analysis.extraPaths"` (.vscode/settings.json) setting.
+2. Add `./kokebok/` to the list of extra paths.
