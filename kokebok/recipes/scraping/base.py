@@ -24,7 +24,7 @@ class MyScraper(Protocol):
     ) -> dict[str, list[ScrapedRecipeIngredient]]:
         raise NotImplementedError()
 
-    def ingress(self) -> str:
+    def preamble(self) -> str:
         raise NotImplementedError()
 
     def content(self) -> HTML:

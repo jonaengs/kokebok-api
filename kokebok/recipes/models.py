@@ -5,7 +5,7 @@ from django.forms import ValidationError
 
 class Recipe(models.Model):
     title = models.CharField(max_length=200, blank=False)
-    ingress = models.TextField(blank=True)
+    preamble = models.TextField(blank=True)
     content = models.TextField(blank=True)
     hero_image = models.ImageField(blank=True, upload_to="recipes/banners")
     created_at = models.DateTimeField(auto_now_add=True)
