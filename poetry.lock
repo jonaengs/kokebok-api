@@ -1382,6 +1382,31 @@ docs = ["myst-parser", "pydata-sphinx-theme", "sphinx"]
 test = ["argcomplete (>=3.0.3)", "mypy (>=1.5.1)", "pre-commit", "pytest (>=7.0,<7.5)", "pytest-mock", "pytest-mypy-testing"]
 
 [[package]]
+name = "types-beautifulsoup4"
+version = "4.12.0.6"
+description = "Typing stubs for beautifulsoup4"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-beautifulsoup4-4.12.0.6.tar.gz", hash = "sha256:045ab285d3e540186e16133612f43f67e31f910e6d7578906b43a0ad8f811347"},
+    {file = "types_beautifulsoup4-4.12.0.6-py3-none-any.whl", hash = "sha256:3da00d754e73afae0ec2793253af0cb9aa1ff2c730e34b31c60313da781b4f6f"},
+]
+
+[package.dependencies]
+types-html5lib = "*"
+
+[[package]]
+name = "types-html5lib"
+version = "1.1.11.15"
+description = "Typing stubs for html5lib"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-html5lib-1.1.11.15.tar.gz", hash = "sha256:80e1a2062d22a3affe5c28d97da30bffbf3a076d393c80fc6f1671216c1bd492"},
+    {file = "types_html5lib-1.1.11.15-py3-none-any.whl", hash = "sha256:16fe936d99b9f7fc210e2e21a2aed1b6bbbc554ad8242a6ef75f6f2bddb27e58"},
+]
+
+[[package]]
 name = "types-requests"
 version = "2.31.0.7"
 description = "Typing stubs for requests"
@@ -1504,4 +1529,4 @@ brotli = ["Brotli"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9ac5a575a2f1d8f01bca62eb10674eada24ef6fa0aff7365a10ec777cbd98fae"
+content-hash = "98dcd8616ef71eb54dc543f39d9f12fd5b0b28fc02bbf33a7c90821ec9929925"

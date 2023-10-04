@@ -20,13 +20,13 @@ def do_scrape(url, html=None):
         raise ValueError("URL has already been scraped")
 
     scraper = get_scraper(url, html=html).scraper
+    print("SCRAPE RESULT:\n=============")
     print(
-        "----------\n".join(
-            scraper.title(),
-            scraper.ingress(),
-            scraper.ingredient_groups(),
-            scraper.content(),
-        )
+        scraper.title(),
+        scraper.ingress(),
+        scraper.ingredient_groups(),
+        scraper.content(),
+        sep="\n-------------\n",
     )
 
 

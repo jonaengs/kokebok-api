@@ -12,6 +12,9 @@ class ScrapedRecipeIngredient(ModelSchema):
         model_exclude = ["base_ingredient", "recipe"]
 
 
+IngredientGroupDict = dict[str, list[ScrapedRecipeIngredient]]
+
+
 HTML = str
 
 
@@ -19,10 +22,10 @@ class MyScraper(Protocol):
     def ingredient_groups(
         self,
     ) -> dict[str, list[ScrapedRecipeIngredient]]:
-        ...
+        raise NotImplementedError()
 
     def ingress(self) -> str:
-        ...
+        raise NotImplementedError()
 
     def content(self) -> HTML:
-        ...
+        raise NotImplementedError()

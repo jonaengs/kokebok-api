@@ -7,17 +7,22 @@ import extruct
 import requests
 from bs4 import BeautifulSoup, Tag
 from recipe_scrapers.tineno import TineNo
-from recipes.scraping.base import HTML, MyScraper, ScrapedRecipeIngredient
+from recipes.scraping.base import (
+    HTML,
+    IngredientGroupDict,
+    MyScraper,
+    ScrapedRecipeIngredient,
+)
 from w3lib.html import get_base_url
 
 # Tests TODO:
 # * Check that no methods modify the raw html, json_ld_data or soup objects
-# * Check that no methods crash
-# * Check that results are returned as expected
+# * Check that no methods crash & that results are returned as expected
 # * Check that it conforms to the expected interface (wrt methods and return types)
+# * Check that methods which return HTML content return safe HTML
 
 
-class TineNoScraper(MyScraper, TineNo):
+class TineNoScraper(TineNo, MyScraper):
     def __init__(self, url: str, html: str | None = None) -> None:
         # We basically parse the page three times because
         # recipe_scrapers doesn't give enough information
@@ -31,7 +36,7 @@ class TineNoScraper(MyScraper, TineNo):
 
         super(TineNoScraper, self).__init__(url, html=self.page_raw)
 
-    def ingredient_groups(self) -> dict[str, list[ScrapedRecipeIngredient]]:
+    def ingredient_groups(self) -> IngredientGroupDict:
         def tine_remove_links(match: re.Match) -> str:
             """Returns the contents of an anchor tag"""
             soup = BeautifulSoup(match.string, "html.parser")
@@ -43,7 +48,7 @@ class TineNoScraper(MyScraper, TineNo):
         assert len(found) == 1, found
         ingredients_data = json.loads(found[0]["data-json"])
 
-        result: dict[str, list[ScrapedRecipeIngredient]] = defaultdict(list)
+        result: IngredientGroupDict = defaultdict(list)
         for group in ingredients_data:
             group_name = group["name"] or ""  # Use empty string as key if name=None
             for ingr in group["ingredientLines"]:
@@ -72,7 +77,7 @@ class TineNoScraper(MyScraper, TineNo):
         return self.json_ld_data["description"]
 
     def content(self) -> HTML:
-        def strip_attrs(tag: Tag) -> Tag:
+        def strip_attrs(tag: Tag):
             attrs = list(tag.attrs.keys())
             for key in attrs:
                 del tag[key]
@@ -86,8 +91,10 @@ class TineNoScraper(MyScraper, TineNo):
         # Strip attributes off the div and its children
         strip_attrs(tip_div)
         for child in tip_div.descendants:
-            if child.name:  # Use name attribute as a proxy for determining a tag
+            if isinstance(child, Tag):
                 strip_attrs(child)
+            # print(type(child), child.name)
+            # if child.name:  # Use name attribute as a proxy for determining a tag
         # Fix fucky indentation
-        formatted = tip_div.prettify(formatter=None)
+        formatted = tip_div.prettify(formatter="html")
         return formatted

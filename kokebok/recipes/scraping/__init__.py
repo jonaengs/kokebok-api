@@ -10,7 +10,7 @@ from recipes.scraping.registry import _registry
 
 # Protocol for classes implementing MyScraper.
 # Until we get typing intersections with the '&' operator, this will have to do.
-class MyScraperProtocol(AbstractScraper, MyScraper):
+class MyScraperProtocol(MyScraper, AbstractScraper):
     ...
 
 
