@@ -75,11 +75,11 @@ class TheWoksOfLifeScraper(MyScraperProtocol, Thewoksoflife):
                     else:
                         # Unable to parse amount.
                         # Make amount and unit blank, and put them in the long name
-                        amount = None
+                        amount = 0
                         ingredient_long_name = li.text[2:]
                         unit = ""
                 else:
-                    amount = None
+                    amount = 0
 
                 data = ScrapedRecipeIngredient(
                     name_in_recipe=ingredient_long_name,

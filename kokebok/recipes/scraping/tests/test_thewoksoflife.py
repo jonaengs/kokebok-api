@@ -37,7 +37,7 @@ parameters: dict[str, dict[str, Any]] = {
             ("", 1),  # pork belly
             ("", 11),  # water
         ],
-        "ingredient_amounts": [1.5, None],
+        "ingredient_amounts": [1.5, 0],
         "ingredient_units": ["lb", ""],
         "base_ingredient_names": [
             "boneless skin-on pork belly",

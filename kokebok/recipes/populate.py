@@ -8,6 +8,10 @@ _ingredients = [
     Ingredient(id=1002, name_en="water", name_de="wasser", is_ubiquitous=True),
     Ingredient(id=1003, name_no="salt", name_de="salz", is_ubiquitous=True),
     Ingredient(id=1004, name_no="gulrot", name_de="karotte"),
+    Ingredient(id=1005, name_no="egg", name_de="ei"),
+    Ingredient(id=1006, name_no="melk", name_de="milch"),
+    Ingredient(id=1007, name_no="hvetemel"),
+    Ingredient(id=1008, name_no="smør", name_de="butter"),
 ]
 
 _recipes = [
@@ -20,6 +24,11 @@ _recipes = [
         id=1002,
         title="Salzwasser",
         content="Geben Sie das Salz ins Wasser. Das ist alles. Du bist fertig!",  # noqa
+    ),
+    Recipe(
+        id=1003,
+        title="Pannekaker",
+        content="Visp sammen egg, salt og melk. Tilsett mel og visp sammen til en klumpfri røre. La røra svelle ca 1/2 time. Rør den opp fra bunnen. Stek pannekaker. Server pannekaker med syltetøy eller sukker.",  # noqa
     ),
 ]
 
@@ -62,6 +71,39 @@ _recipe_ingredients = [
         recipe_id=1002,
         base_ingredient_id=1003,
         name_in_recipe="Ein Teelöffel Salz",
+    ),
+    # Pannekaker
+    RecipeIngredient(
+        name_in_recipe="egg",
+        id=1007,
+        recipe_id=1003,
+        base_ingredient_id=1005,
+        amount=2,
+        unit="count",
+    ),
+    RecipeIngredient(
+        name_in_recipe="salt",
+        id=1008,
+        recipe_id=1003,
+        base_ingredient_id=1003,
+        amount=1 / 4,
+        unit="tsp",
+    ),
+    RecipeIngredient(
+        name_in_recipe="melk",
+        id=1009,
+        recipe_id=1003,
+        base_ingredient_id=1006,
+        amount=6,
+        unit="dl",
+    ),
+    RecipeIngredient(
+        name_in_recipe="smør til steking",
+        id=1010,
+        recipe_id=1003,
+        base_ingredient_id=1008,
+        amount=0,
+        unit="",
     ),
 ]
 

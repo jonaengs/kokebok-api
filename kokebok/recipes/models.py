@@ -100,7 +100,7 @@ class RecipeIngredient(models.Model):
 
     # The amount to use when making the base recipe
     base_amount = models.FloatField(
-        blank=True, null=True, validators=[MinValueValidator(0.0)]
+        blank=True, default=0, validators=[MinValueValidator(0.0)]
     )
     unit = models.CharField(
         max_length=16,
