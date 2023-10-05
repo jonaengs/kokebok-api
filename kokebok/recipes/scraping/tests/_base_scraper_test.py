@@ -23,6 +23,9 @@ class BaseScraperTest:
         self.assertEqual(scraper.preamble(), preamble_1)
         self.assertEqual(scraper.content(), content_1)
 
+    def test_content_not_empty(self):
+        self.assertNotEqual(len(self.scraper.content()), 0)
+
     def test_content_text(self):
         self.maxDiff = None
         content = self.scraper.content()
@@ -40,9 +43,10 @@ class BaseScraperTest:
     def test_group_names(self):
         groups = self.scraper.ingredient_groups()
 
-        self.assertEqual(len(groups.keys()), len(self.expected_group_names))
         for found_name, expected_name in zip(groups, self.expected_group_names):
             self.assertEqual(found_name, expected_name)
+
+        self.assertEqual(len(groups.keys()), len(self.expected_group_names))
 
     def test_preamble(self):
         self.assertEqual(self.scraper.preamble(), self.expected_preamble)

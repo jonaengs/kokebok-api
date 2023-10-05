@@ -3,7 +3,7 @@ import textwrap
 from bs4 import BeautifulSoup, Tag
 from django.test import TestCase
 from recipes.scraping.scrapers.tineno import TineNoScraper
-from recipes.scraping.tests.utils import inject_base_tests, with_params
+from recipes.scraping.tests._utils import inject_base_tests, with_params
 
 parameters = {
     # https://www.tine.no/oppskrifter/middag-og-hovedretter/pasta-og-ris/urtepasta-med-kylling
@@ -36,7 +36,6 @@ parameters = {
 }
 
 
-# @parameterized_class(params_generator(parameters), class_name_func=name_cls_plus_doc)
 @with_params(parameters)
 @inject_base_tests()
 class TineNoTest(TestCase):

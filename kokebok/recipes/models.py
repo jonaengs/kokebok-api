@@ -78,7 +78,7 @@ class RecipeIngredient(models.Model):
         TABLESPOON = "tbsp"
         TEASPOON = "tsp"
         # Other
-        COUNT = ""
+        COUNT = "count"
         SLICE = "slice"
         CENTIMETRE = "cm"
         INCH = "inch"
@@ -109,8 +109,6 @@ class RecipeIngredient(models.Model):
     )
 
     def clean(self):
-        if bool(self.base_amount) != bool(self.unit):
-            raise ValidationError("base_amount and unit must be set or None")
         return super().clean()
 
     def __repr__(self) -> str:

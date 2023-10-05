@@ -73,7 +73,7 @@ class TineNoScraper(MyScraperProtocol, TineNo):
                 )
                 result[group_name].append(data)
 
-        return result
+        return dict(result)
 
     def preamble(self) -> str:
         return self.json_ld_data["description"]

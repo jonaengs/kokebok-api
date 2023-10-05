@@ -16,7 +16,7 @@ _UNITS = {
     "tbsp": ("tablespoon", "tablespoons"),
     "tsp": ("teaspoon", "teaspoons"),
     # Other
-    "": ("",),
+    "count": ("",),
     "slice": ("slice", "slices"),
     "inch": ("inches", "″"),
     "cm": ("centimetre", "centimetres"),

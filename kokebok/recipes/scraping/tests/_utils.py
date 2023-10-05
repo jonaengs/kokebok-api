@@ -3,7 +3,7 @@ from typing import Any, Callable
 
 from django.test import TestCase
 from parameterized import parameterized_class
-from recipes.scraping.tests.base_scraper_test import BaseScraperTest
+from recipes.scraping.tests._base_scraper_test import BaseScraperTest
 
 DOCS_DIR = Path("recipes/scraping/tests/html")
 
@@ -15,13 +15,18 @@ def params_generator(parameters: TestParams):
     """
     Returns a generator of the given parameters dict, but with
     "doc" key mapping to the actual document contents.
-    Prepends "expected_" to all other keys.
+
+    Prepends "expected_" to all other keys, except ones prefixed
+    with "_", which are left alone.
     """
     for doc, expected in parameters.items():
         yield {
             "doc": open(DOCS_DIR / doc, encoding="utf-8").read(),
             "doc_name": doc,
-        } | {"expected_" + key: val for key, val in expected.items()}
+        } | {
+            ((not key.startswith("_")) * "expected_") + key: val
+            for key, val in expected.items()
+        }
 
 
 def name_cls_plus_doc(cls, _idx, params_dict):
@@ -44,9 +49,7 @@ def inject_base_tests(
 
     base_tests = dict(BaseScraperTest.__dict__)
     if include:
-        base_tests = {
-            name: val for name, val in base_tests.items() if val in include
-        }
+        base_tests = {name: val for name, val in base_tests.items() if val in include}
     if exclude:
         base_tests = {
             name: val for name, val in base_tests.items() if val not in exclude
