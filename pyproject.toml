@@ -16,6 +16,7 @@ gunicorn = "^21.2.0"
 whitenoise = "^6.5.0"
 recipe-scrapers = "^14.49.3"
 pillow = "^10.0.1"
+django-cors-headers = "^4.2.0"
 
 
 [tool.poetry.group.dev.dependencies]

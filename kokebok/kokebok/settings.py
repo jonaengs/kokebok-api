@@ -29,6 +29,10 @@ ALLOWED_HOSTS = env("ALLOWED_HOSTS").split(" ")
 
 CSRF_TRUSTED_ORIGINS = ["https://" + host for host in ALLOWED_HOSTS]
 
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:5173'
+]
+
 AUTH_USER_MODEL = "core.User"
 
 # Application definition
@@ -41,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "whitenoise.runserver_nostatic",  # Whitenoise
     "django.contrib.staticfiles",
+    "corsheaders",
     # My apps
     "core",
     "recipes",
@@ -48,8 +53,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # Whitenoise
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Whitenoise
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
