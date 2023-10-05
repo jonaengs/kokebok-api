@@ -63,17 +63,25 @@ class Ingredient(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    class Measurements(models.Choices):
-        GRAMS = "g"
-        KILOGRAMS = "kg"
-        LITERS = "l"
-        DECILITERS = "dl"
-        CENTILITERS = "cl"
-        MILLILITERS = "ml"
-        TABLESPOONS = "tbsp"
-        TEASPOONS = "tsp"
+    class Units(models.Choices):
+        # Weight
+        GRAM = "g"
+        KILOGRAM = "kg"
+        OUNCE = "oz"
+        POUND = "lb"
+        # Volume
+        LITER = "l"
+        DECILITER = "dl"
+        CENTILITER = "cl"
+        MILLILITER = "ml"
+        CUP = "cup"
+        TABLESPOON = "tbsp"
+        TEASPOON = "tsp"
+        # Other
         COUNT = ""
-        SLICES = "slices"
+        SLICE = "slice"
+        CENTIMETRE = "cm"
+        INCH = "inch"
 
     recipe = models.ForeignKey(
         to=Recipe, on_delete=models.CASCADE, related_name="recipe_ingredients"
@@ -94,15 +102,15 @@ class RecipeIngredient(models.Model):
     base_amount = models.FloatField(
         blank=True, null=True, validators=[MinValueValidator(0.0)]
     )
-    measurement = models.CharField(
+    unit = models.CharField(
         max_length=16,
         blank=True,
-        choices=Measurements.choices,
+        choices=Units.choices,
     )
 
     def clean(self):
-        if bool(self.base_amount) != bool(self.measurement):
-            raise ValidationError("base_amount and measurement must be set or None")
+        if bool(self.base_amount) != bool(self.unit):
+            raise ValidationError("base_amount and unit must be set or None")
         return super().clean()
 
     def __repr__(self) -> str:

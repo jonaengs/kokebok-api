@@ -11,7 +11,7 @@ from recipe_scrapers.tineno import TineNo
 from recipes.scraping.base import (
     HTML,
     IngredientGroupDict,
-    MyScraper,
+    MyScraperProtocol,
     ScrapedRecipeIngredient,
 )
 
@@ -21,17 +21,15 @@ from recipes.scraping.base import (
 # TODO: Consider changing parser to lxml for improved performance
 
 
-class TineNoScraper(TineNo, MyScraper):
+class TineNoScraper(MyScraperProtocol, TineNo):
     def __init__(self, url: str | None, html: str | None = None) -> None:
         # We basically parse the page three times because
         # recipe_scrapers doesn't give enough information
         self.page_raw = html or requests.get(url).content.decode("utf-8")  # type: ignore[arg-type] # noqa
-        json_ld_extract = extruct.extract(
-            self.page_raw,
-            syntaxes=["json-ld"],
-        )
-        self.json_ld_data = json_ld_extract["json-ld"][0]
         self.page_soup = BeautifulSoup(self.page_raw, "html.parser")
+
+        json_ld_extract = extruct.extract(self.page_raw, syntaxes=["json-ld"])
+        self.json_ld_data = json_ld_extract["json-ld"][0]
 
         super(TineNoScraper, self).__init__(url, html=self.page_raw)
 
@@ -68,7 +66,7 @@ class TineNoScraper(TineNo, MyScraper):
                 data = ScrapedRecipeIngredient(
                     name_in_recipe=name,
                     base_ingredient_str=ingr["ingredient"]["genericName"],
-                    amount=ingr["amount"],
+                    base_amount=ingr["amount"],
                     unit=ingr["unit"]["singular"],
                     is_optional=ingr["omissible"],
                     group_name=group_name,

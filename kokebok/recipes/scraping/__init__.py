@@ -4,14 +4,8 @@ import recipe_scrapers
 from recipe_scrapers import scrape_html, scrape_me
 from recipe_scrapers._abstract import AbstractScraper
 from recipe_scrapers._utils import get_host_name
-from recipes.scraping.base import MyScraper
+from recipes.scraping.base import MyScraperProtocol
 from recipes.scraping.registry import _registry
-
-
-# Protocol for classes implementing MyScraper.
-# Until we get typing intersections with the '&' operator, this will have to do.
-class MyScraperProtocol(MyScraper, AbstractScraper):
-    ...
 
 
 class RegistryLookupResult(NamedTuple):
