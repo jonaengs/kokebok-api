@@ -1,5 +1,6 @@
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.dispatch import receiver
 from django.forms import ValidationError
 
 
@@ -7,7 +8,7 @@ class Recipe(models.Model):
     title = models.CharField(max_length=200, blank=False)
     preamble = models.TextField(blank=True)
     content = models.TextField(blank=True)
-    hero_image = models.ImageField(blank=True, upload_to="recipes/banners")
+    hero_image = models.ImageField(blank=True, upload_to="recipes/hero_images")
     created_at = models.DateTimeField(auto_now_add=True)
 
     # Numeric data
@@ -30,6 +31,13 @@ class Recipe(models.Model):
 
     def __str__(self) -> str:
         return repr(self)
+
+
+@receiver(models.signals.post_delete, sender=Recipe)
+def recipe_delete_handler(instance: Recipe, *args, **kwargs):
+    """Deletes images associated with a recipe when a recipe is deleted"""
+    if instance.hero_image:
+        instance.hero_image.delete(save=False)
 
 
 class Ingredient(models.Model):

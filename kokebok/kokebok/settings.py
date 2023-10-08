@@ -30,7 +30,8 @@ ALLOWED_HOSTS = env("ALLOWED_HOSTS").split(" ")
 CSRF_TRUSTED_ORIGINS = ["https://" + host for host in ALLOWED_HOSTS]
 
 CORS_ORIGIN_WHITELIST = [
-    'http://localhost:5173'
+    # Local Svelte dev
+    "http://localhost:5173"
 ]
 
 AUTH_USER_MODEL = "core.User"
@@ -123,14 +124,21 @@ USE_I18N = True
 USE_TZ = True
 
 
+# Media files
+MEDIA_URL = "media/"
+
+MEDIA_ROOT = BASE_DIR / "data/mediafiles"
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / "data/staticfiles"
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
