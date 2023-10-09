@@ -6,7 +6,7 @@ services:
     build: ./
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./kokebok/:/usr/src/kokebok-api/
+      - media_files:/code/data/mediafiles
     ports:
       - 8000:8000
     environment:
@@ -26,3 +26,4 @@ services:
 
 volumes:
   postgres_data:
+  media_files:
