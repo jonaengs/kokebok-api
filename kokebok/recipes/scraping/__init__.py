@@ -96,9 +96,8 @@ class RegistryLookupResult(NamedTuple):
 
 
 # TODO: Redesign this interface
-def get_scraper(url, html=None, host=None) -> RegistryLookupResult:
-    # host param is only for use with testing
-    host = host or (get_host_name(url) if url else "")
+def get_scraper(url: str | None, html=None) -> RegistryLookupResult:
+    host = get_host_name(url) if url else ""
     if host in _registry:
         return RegistryLookupResult(
             host_in_my_registry=True,
@@ -109,12 +108,12 @@ def get_scraper(url, html=None, host=None) -> RegistryLookupResult:
         return RegistryLookupResult(
             host_in_my_registry=False,
             host_in_scrapers_registry=True,
-            scraper=scrape_html(html, url or host) if html else scrape_me(url),
+            scraper=scrape_html(html, url) if html else scrape_me(url),
         )
     return RegistryLookupResult(
         host_in_my_registry=False,
         host_in_scrapers_registry=False,
-        scraper=scrape_html(html, url or host, wild_mode=True)
+        scraper=scrape_html(html, url, wild_mode=True)
         if html
         else scrape_me(url, wild_mode=True),
     )

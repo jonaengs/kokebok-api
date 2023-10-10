@@ -1,10 +1,21 @@
+from unittest import mock
+
 from bs4 import BeautifulSoup
 from recipes import scraping
 
 
 class BaseScraperTest:
     def setUp(self) -> None:
-        self.scraper = self.scraper_cls(url=None, html=self.doc)  # type: ignore[attr-defined] # noqa
+        # Make sure we aren't accidentally making any web requests
+        def _raise(*args, **kwargs):
+            raise Exception("Mocked method called")
+
+        patcher = mock.patch("requests.get", new=_raise)
+        self.addCleanup(patcher.stop)  # type: ignore[attr-defined]
+        patcher.start()
+
+        # Then setup scraper
+        self.scraper = self.scraper_cls(url=self._url, html=self.doc)  # type: ignore[attr-defined] # noqa
 
     def test_repeat_calls(self):
         # Check that return values do not change over repeat calls, for example
@@ -62,5 +73,5 @@ class BaseScraperTest:
     def test_scraper_function_doesnt_fail(self):
         # Tests more than just the scraper class itself, so
         # consider moving this out to some other test class
-        scraped_recipe = scraping.scrape(None, self.doc)
+        scraped_recipe = scraping.scrape(self._url, self.doc)
         scraped_recipe.clean()

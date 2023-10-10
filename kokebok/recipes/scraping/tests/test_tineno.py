@@ -6,22 +6,22 @@ from recipes.scraping.scrapers.tineno import TineNoScraper
 from recipes.scraping.tests._utils import inject_base_tests, with_params
 
 parameters = {
-    # https://www.tine.no/oppskrifter/middag-og-hovedretter/pasta-og-ris/urtepasta-med-kylling
     "tineno.kylling_urtepasta.html": {
+        "_url": "https://www.tine.no/oppskrifter/middag-og-hovedretter/pasta-og-ris/urtepasta-med-kylling",
         "title": "Urtepasta med kylling",
         "content": "Tips\nSprøstekt bacon smaker også veldig godt i denne pastaretten.",
         "group_names": ["", "Urtesaus", "Tilbehør"],
         "preamble": "Oppskrift på deilig pastarett med kylling og nydelig urtesaus. Urtesausen består av Crème Fraîche, og det du måtte ha stående av friske urter.",
     },
-    # https://www.tine.no/oppskrifter/middag-og-hovedretter/kylling-og-fjarkre/rask-kylling-tikka-masala
     "tineno.tikka_masala.html": {
+        "_url": "https://www.tine.no/oppskrifter/middag-og-hovedretter/kylling-og-fjarkre/rask-kylling-tikka-masala",
         "title": "Rask kylling tikka masala",
         "content": "Tips\nHvis retten skulle koke litt tørr, er det bare å spe på med litt vann.",
         "group_names": ["Ris", "Tikka masala", "Raita"],
         "preamble": "En god og rask oppskrift på en kylling tikka masala. Dette er en rett med små smakseksplosjoner som sender tankene til India.",
     },
-    # https://www.tine.no/oppskrifter/bakst/brod-og-rundstykker/horn-med-kefir-brunost-og-bringeb%C3%A6r
     "tineno.horn_kefir.html": {
+        "_url": "https://www.tine.no/oppskrifter/bakst/brod-og-rundstykker/horn-med-kefir-brunost-og-bringeb%C3%A6r",
         "title": "Horn med kefir, brunost og bringebær",
         "content": textwrap.dedent(
             """\
@@ -48,6 +48,6 @@ class TineNoTest(TestCase):
         content = self.scraper.my_content()
         soup = BeautifulSoup(content, "html.parser")
         self.assertEqual(soup.attrs, {})
-        for child in soup.children:
-            if isinstance(child, Tag):
-                self.assertEqual(child.attrs, {})
+        for desc in soup.descendants:
+            if isinstance(desc, Tag):
+                self.assertEqual(desc.attrs, {})
