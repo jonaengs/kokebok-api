@@ -1,8 +1,10 @@
 import functools
 from typing import Protocol
 
+from django.forms import ValidationError
 from ninja import ModelSchema
-from recipes.models import RecipeIngredient
+from recipe_scrapers._abstract import AbstractScraper
+from recipes.models import Recipe, RecipeIngredient
 
 # TODO: Make sure all keys in this dict are members of RecipeIngrediet.Units
 _UNITS = {
@@ -13,10 +15,11 @@ _UNITS = {
     "lb": ("pound", "pounds"),
     # Volume
     "cup": ("cup", "cups"),
-    "tbsp": ("tablespoon", "tablespoons"),
-    "tsp": ("teaspoon", "teaspoons"),
+    "tbsp": ("tablespoon", "tablespoons", "ss"),
+    "tsp": ("teaspoon", "teaspoons", "ts"),
+    "dl": ("decilitre", "decilitres", "desiliter"),
     # Other
-    "count": ("",),
+    "count": ("", "stk", "stk."),
     "slice": ("slice", "slices"),
     "inch": ("inches", "″"),
     "cm": ("centimetre", "centimetres"),
@@ -31,30 +34,57 @@ UNIT_STRINGS: dict[str, str] = functools.reduce(
 
 
 class ScrapedRecipeIngredient(ModelSchema):
-    base_ingredient_str: str | None
+    base_ingredient_str: str = ""
 
     class Config:
         model = RecipeIngredient
         model_exclude = ["base_ingredient", "recipe"]
 
+    def clean(self):
+        ...
+
 
 IngredientGroupDict = dict[str, list[ScrapedRecipeIngredient]]
+
+
+class ScrapedRecipe(ModelSchema):
+    hero_image_link: str
+    ingredients: IngredientGroupDict
+
+    class Config:
+        model = Recipe
+        model_exclude = ["hero_image", "created_at", "video_url", "other_source"]
+
+    def clean(self):
+        if self.language and self.language not in Recipe.Languages.choices:
+            raise ValidationError(f"Illegal language: {self.language}")
+        for group_name, ingredients in self.ingredients.items():
+            if not all(ingr.group_name == group_name for ingr in ingredients):
+                raise ValidationError("Group names must all be the same")
+            for ingr in ingredients:
+                ingr.clean()
 
 
 HTML = str
 
 
 class MyScraperProtocol(Protocol):
-    def __init__(self, url: str | None, html: str | None):
-        ...
+    def __init__(self, *args, **kwargs):
+        super(MyScraperProtocol, self).__init__(self, *args, **kwargs)
 
-    def ingredient_groups(
+    def my_ingredient_groups(
         self,
     ) -> dict[str, list[ScrapedRecipeIngredient]]:
         ...
 
-    def preamble(self) -> str:
+    def my_preamble(self) -> str:
         ...
 
-    def content(self) -> HTML:
+    def my_content(self) -> HTML:
         ...
+
+
+# Protocol for classes implementing MyScraper.
+# Until we get typing intersections with the '&' operator, this will have to do.
+class MyScraper(MyScraperProtocol, AbstractScraper):
+    ...

@@ -28,11 +28,11 @@ def do_scrape(url, html=None):
     print("SCRAPE RESULT:\n=============")
     print(
         scraper.title(),
-        scraper.preamble(),
+        scraper.my_preamble(),
         # scraper.description(),
-        scraper.content(),
+        scraper.my_content(),
         # scraper.ingredients(),
-        scraper.ingredient_groups(),
+        scraper.my_ingredient_groups(),
         # scraper.instructions(),
         sep="\n-------------\n",
     )

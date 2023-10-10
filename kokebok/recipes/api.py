@@ -3,6 +3,7 @@ from itertools import groupby
 from django.urls import path
 from ninja import Field, ModelSchema, NinjaAPI, Schema
 from recipes.models import Ingredient, Recipe, RecipeIngredient
+from recipes.scraping.base import ScrapedRecipe
 
 api = NinjaAPI()
 
@@ -76,14 +77,25 @@ def recipe_data(_request):
     return recipes
 
 
-class ScrapeUrl(Schema):
-    url: str = Field(description="url of the recipe you want scraped")
+class Error(Schema):
+    message: str
 
 
-@api.post("scrape")
-def scrape_recipe(_request, data: ScrapeUrl):
-    # TODO: Fill out
-    return f"{data.url}"
+@api.get("scrape", response={200: ScrapedRecipe, 400: Error})
+def scrape_recipe(_request, url: str):
+    existing = Recipe.objects.filter(origin_url=url).exists()
+    if existing:
+        return 403, {"message": "Recipe with given url already exists."}
+
+    return {}
+
+    # recipe = scrape(url)
+    # try:
+    #     recipe.clean()
+    # except ValidationError as e:
+    #     return 403, {"message": str(e)}
+
+    # return recipe
 
 
 urlpatterns = [

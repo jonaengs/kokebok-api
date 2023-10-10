@@ -8,6 +8,7 @@ from recipes.scraping.tests._utils import inject_base_tests, with_params
 parameters: dict[str, dict[str, Any]] = {
     # https://thewoksoflife.com/red-curry-chicken/
     "thewoksoflife.red_curry_chicken.html": {
+        "title": "Thai Red Curry Chicken",
         "group_names": ["For the chicken:", "For the rest of the dish:"],
         "preamble": "This Thai red curry chicken recipe is a restaurant-quality dish with a great variety of flavors and textures. Serve with steamed rice, and dinner is set.",
         "_ingredient_paths": [
@@ -31,6 +32,7 @@ parameters: dict[str, dict[str, Any]] = {
     },
     # https://thewoksoflife.com/pork-belly-pickled-mustard-greens-chinese/#recipe
     "thewoksoflife.pork_mustard_greens.html": {
+        "title": "Braised Pork Belly with Pickled Mustard Greens (酸菜卤肉饭)",
         "group_names": [""],
         "preamble": "This Braised Pork Belly with Pickled Mustard Greens (酸菜卤肉饭) is savory, tangy, and perfect over rice. The tang of the pickled vegetables wakes up your taste buds and cuts through the heaviness of the meat, making for a balanced, satisfying dish.",
         "_ingredient_paths": [
@@ -54,6 +56,7 @@ parameters: dict[str, dict[str, Any]] = {
     },
     # https://thewoksoflife.com/chicken-katsu-curry-rice/
     "thewoksoflife.chicken_katsu.html": {
+        "title": "Chicken Katsu Curry Rice",
         "group_names": [
             "For the curry sauce:",
             "For the chicken katsu:",
@@ -93,10 +96,10 @@ class TheWoksOfLifeTest(TestCase):
     # scraper: TheWoksOfLifeScraper = None  # Only here to help autocomplete
 
     def _check_ingredient_expected(self, expected: list[Any], field: str):
-        ingredient_groups = self.scraper.ingredient_groups()
+        my_ingredient_groups = self.scraper.my_ingredient_groups()
         for path, expected in zip(self._ingredient_paths, expected):
             group, idx = path
-            ingredient = ingredient_groups[group][idx]
+            ingredient = my_ingredient_groups[group][idx]
             actual = dict(ingredient)[field]
             self.assertEqual(actual, expected, f"[{field}] {ingredient}")
 

@@ -5,11 +5,20 @@ from django.forms import ValidationError
 
 
 class Recipe(models.Model):
+    class Languages(models.Choices):
+        NORWEGIAN = "no"
+        ENGLISH = "en"
+        GERMAN = "de"
+        FRENCH = "fr"
+        ITALIAN = "it"
+
     title = models.CharField(max_length=200, blank=False)
     preamble = models.TextField(blank=True)
     content = models.TextField(blank=True)
     hero_image = models.ImageField(blank=True, upload_to="recipes/hero_images")
     created_at = models.DateTimeField(auto_now_add=True)
+    original_author = models.CharField(max_length=128, blank=True)
+    language = models.CharField(max_length=8, choices=Languages.choices, blank=True)
 
     # Numeric data
     total_time = models.IntegerField(
@@ -41,6 +50,7 @@ def recipe_delete_handler(instance: Recipe, *args, **kwargs):
 
 
 class Ingredient(models.Model):
+    # unique=True means that indexes are created automatically for these fields
     name_no = models.CharField(max_length=64, unique=True, null=True, blank=True)
     name_en = models.CharField(max_length=64, unique=True, null=True, blank=True)
     name_de = models.CharField(max_length=64, unique=True, null=True, blank=True)

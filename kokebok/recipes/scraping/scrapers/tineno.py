@@ -31,9 +31,9 @@ class TineNoScraper(MyScraperProtocol, TineNo):
         json_ld_extract = extruct.extract(self.page_raw, syntaxes=["json-ld"])
         self.json_ld_data = json_ld_extract["json-ld"][0]
 
-        super(TineNoScraper, self).__init__(url, html=self.page_raw)
+        super().__init__(url, html=self.page_raw)
 
-    def ingredient_groups(self) -> IngredientGroupDict:
+    def my_ingredient_groups(self) -> IngredientGroupDict:
         def tine_remove_links(match: re.Match) -> str:
             """Returns the contents of an anchor tag"""
             soup = BeautifulSoup(match.string, "html.parser")
@@ -44,6 +44,8 @@ class TineNoScraper(MyScraperProtocol, TineNo):
         found = self.page_soup.find_all(attrs={"data-json": True})
         assert len(found) == 1, found
         ingredients_data = json.loads(found[0]["data-json"])
+
+        # pprint(ingredients_data)
 
         result: IngredientGroupDict = defaultdict(list)
         for group in ingredients_data:
@@ -65,7 +67,11 @@ class TineNoScraper(MyScraperProtocol, TineNo):
 
                 data = ScrapedRecipeIngredient(
                     name_in_recipe=name,
-                    base_ingredient_str=ingr["ingredient"]["genericName"],
+                    base_ingredient_str=(
+                        ingr["ingredient"]["genericName"]
+                        or ingr["ingredient"]["singular"]
+                        or ingr["content"]["ingredientContent"]
+                    ),
                     base_amount=ingr["amount"],
                     unit=ingr["unit"]["singular"],
                     is_optional=ingr["omissible"],
@@ -75,10 +81,10 @@ class TineNoScraper(MyScraperProtocol, TineNo):
 
         return dict(result)
 
-    def preamble(self) -> str:
+    def my_preamble(self) -> str:
         return self.json_ld_data["description"]
 
-    def content(self) -> HTML:
+    def my_content(self) -> HTML:
         def extract_tips(tags: bs4.ResultSet[Any]):
             contents = "".join(
                 "\n\n" + tag.text.replace("Tips", "").strip() for tag in tags

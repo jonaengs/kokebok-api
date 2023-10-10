@@ -30,9 +30,9 @@ class TheWoksOfLifeScraper(MyScraperProtocol, Thewoksoflife):
         json_ld_extract = extruct.extract(self.page_raw, syntaxes=["json-ld"])
         self.json_ld_data = json_ld_extract["json-ld"][0]
 
-        super(TheWoksOfLifeScraper, self).__init__(url, html=self.page_raw)
+        super().__init__(url, html=self.page_raw)
 
-    def ingredient_groups(self) -> IngredientGroupDict:
+    def my_ingredient_groups(self) -> IngredientGroupDict:
         group_containers = self.page_soup.find_all(
             attrs={"class": "wprm-recipe-ingredient-group"},
         )
@@ -93,14 +93,14 @@ class TheWoksOfLifeScraper(MyScraperProtocol, Thewoksoflife):
 
         return dict(result)
 
-    def preamble(self) -> str:
+    def my_preamble(self) -> str:
         nodes: list[dict] = self.json_ld_data["@graph"]
         for node in nodes:
             if node["@id"].endswith("/#recipe"):
                 return node["description"]
         return ""
 
-    def content(self) -> HTML:
+    def my_content(self) -> HTML:
         tips_div = self.page_soup.find(attrs={"class": "wprm-recipe-notes-container"})
         if tips_div:
             # Don't handle bs4.NavigableString
