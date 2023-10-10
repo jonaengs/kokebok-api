@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "whitenoise.runserver_nostatic",  # Whitenoise
     "django.contrib.staticfiles",
     "corsheaders",
+    "storages",
     # My apps
     "core",
     "recipes",
@@ -124,20 +125,43 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Media files
-MEDIA_URL = "media/"
-
-MEDIA_ROOT = BASE_DIR / "data/mediafiles"
-
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
-
 STATIC_URL = "static/"
-
 STATIC_ROOT = BASE_DIR / "data/staticfiles"
+static_files_storage = {
+    "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    "OPTIONS": {},
+}
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Media files
+if DEBUG:
+    MEDIA_URL = "media/"
+    MEDIA_ROOT = BASE_DIR / "data/mediafiles"
+    media_files_storage = {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {},
+    }
+else:
+    # AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}  # useless w/o CF
+
+    media_files_storage = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "location": "private",
+            "default_acl": "private",
+            "custom_domain": False,
+            "signature_version": "s3v4",
+            "region_name": env("AWS_S3_REGION_NAME"),
+            "bucket_name": env("AWS_STORAGE_BUCKET_NAME"),
+        },
+    }
+
+
+STORAGES = {
+    "default": media_files_storage,
+    "staticfiles": static_files_storage,
+}
 
 
 # Default primary key field type

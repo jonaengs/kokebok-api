@@ -32,6 +32,16 @@ To quickly test out smaller scripts within the Django environment, run `python m
 See [this](https://fly.io/django-beats/deploying-django-to-production/#deploying-to-fly-io) article from fly.io for an introduction to deploying Django applications to their service.
 
 
+### Media files in production
+The application is set up to host media files on S3 (or some other S3-compatible service). Once you have an S3 bucket and access keys (see (here)[https://testdriven.io/blog/storing-django-static-and-media-files-on-amazon-s3/] for a guide), the following variables must be set (either as environment variables or in the `.env` file):
+```
+AWS_STORAGE_BUCKET_NAME
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_S3_REGION_NAME
+```
+
+
 ## Development
 
 ### Wrong auto-import paths using VSCode/Pylance
