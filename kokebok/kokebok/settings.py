@@ -86,6 +86,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "csp.middleware.CSPMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -177,6 +178,8 @@ if DEBUG:
 else:
     # AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}  # useless w/o CF
 
+    AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
     media_files_storage = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
@@ -186,6 +189,7 @@ else:
             "signature_version": "s3v4",
             "region_name": env("AWS_S3_REGION_NAME"),
             "bucket_name": env("AWS_STORAGE_BUCKET_NAME"),
+            "querystring_expire": 60 * 60,  # one hour (unit is seconds)
         },
     }
 
@@ -194,6 +198,17 @@ STORAGES = {
     "default": media_files_storage,
     "staticfiles": static_files_storage,
 }
+
+
+# CSP (Content Security Policy) Settings
+# About the safety of "data:": https://security.stackexchange.com/q/94993
+CSP_IMG_SRC = ("'self'", "data:") + (
+    (AWS_S3_CUSTOM_DOMAIN,) if not DEBUG else tuple()
+)
+CSP_STYLE_SRC = "'self'"
+CSP_SCRIPT_SRC = "'self'"
+CSP_CONNECT_SRC = "'self'"
+CSP_DEFAULT_SRC = "'none'"
 
 
 # Default primary key field type
