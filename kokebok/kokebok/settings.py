@@ -207,6 +207,9 @@ CSP_STYLE_SRC = "'self'"
 CSP_SCRIPT_SRC = "'self'"
 CSP_CONNECT_SRC = "'self'"
 CSP_DEFAULT_SRC = "'none'"
+# Set these two to True when debugging CSP issues!
+CSP_REPORT_ONLY = False
+CSP_REPORT_URI = False
 
 
 # Default primary key field type
