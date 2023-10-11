@@ -24,7 +24,13 @@
 To quickly test out smaller scripts within the Django environment, run `python manage.py shell -c exec(open(<file_path>).read())`.
 
 
-## Deploying to Fly.io
+## Deploying
+Make sure that you've configured the app correctly before deploying. The simplest way to do this is to use a `.env` file to store all configuration settings. The file is already in `.gitignore` rules. The `.env.dev` file contains example values for all env variables used, though the values there are meant for local development and are not suited for use in a production environment.
+
+Make sure you know what you are doing and are aware of the potential consequences before setting `STRICT_SSL=True`. Note that certain TLDs like `.dev` are "HTTP-only", and are already preloaded into the HSTS lists of modern web browsers.
+
+
+### Deploying to Fly.io
 0. (First time) Log into fly locally by running `fly auth login`. Then run `fly launch` to configure the application. Remember to update `settings.py` and your `.env` files too!
 2. Run `fly deploy`
 3. (Run `fly open` to open the app in your browser)

@@ -8,6 +8,7 @@ env = environ.Env(
     #
     DEBUG=(bool, False),
     ENV_FILE=(str, ".env"),  # Defauly to prod settings file
+    STRICT_SSL=(bool, True),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -16,25 +17,55 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Read .env file. "Live" env variables have precedence over .env file contents
 env.read_env(BASE_DIR / env("ENV_FILE"))
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DEBUG")
+STRICT_SSL = env("STRICT_SSL")
+if STRICT_SSL:
+    assert not DEBUG, "Don't enable strict SSL measures in debug mode"
 
-# Crash if secret key not defined and we're not in debug mode
 SECRET_KEY = env.str("SECRET_KEY", default=get_random_secret_key())
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS").split(" ")
 
-CSRF_TRUSTED_ORIGINS = ["https://" + host for host in ALLOWED_HOSTS]
-
-CORS_ORIGIN_WHITELIST = [
-    # Local Svelte dev
-    "http://localhost:5173"
-]
-
+# User model
 AUTH_USER_MODEL = "core.User"
+
+
+# Security policies
+# We use Django's sessions for auth and secure endpoints using CSRF tokens
+
+# CORS
+CORS_ORIGIN_WHITELIST = (
+    [
+        # Local frontend server
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+    if DEBUG
+    else ["https://" + host for host in ALLOWED_HOSTS]
+)
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
+CORS_ALLOW_CREDENTIALS = True  # Allows cookies to be sent with CORs
+
+# Session
+SESSION_COOKIE_SAMESITE = "Strict"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG  # Don't require HTTPS cookie transfer in local dev
+
+# CSRF
+CSRF_COOKIE_SAMESITE = "Strict"
+CSRF_COOKIE_HTTPONLY = True
+CSRF_TRUSTED_ORIGINS = CORS_ORIGIN_WHITELIST
+CSRF_COOKIE_SECURE = not DEBUG  # Don't require HTTPS cookie transfer in local dev
+
+# SSL
+# Leave out if deploying to fly -- all .dev domains require HTTPS automatically
+# SECURE_SSL_REDIRECT = STRICT_SSL
+if STRICT_SSL:
+    SECURE_HSTS_SECONDS = 31536000  # One year
+
+# OTHER
+X_FRAME_OPTIONS = "DENY"  # Disallow iframes of the site
+
 
 # Application definition
 
@@ -46,6 +77,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "whitenoise.runserver_nostatic",  # Whitenoise
     "django.contrib.staticfiles",
+    "ninja",  # needed to self-host staticfiles for API docs
     "corsheaders",
     "storages",
     # My apps

@@ -1,11 +1,13 @@
 from itertools import groupby
 
-from django.urls import path
-from ninja import Field, ModelSchema, NinjaAPI, Schema
+from django.forms import ValidationError
+from ninja import Field, ModelSchema, Router, Schema
+from ninja.security import django_auth
 from recipes.models import Ingredient, Recipe, RecipeIngredient
+from recipes.scraping import scrape
 from recipes.scraping.base import ScrapedRecipe
 
-api = NinjaAPI()
+router = Router(auth=django_auth)
 
 
 class ModelRecipeSchema(ModelSchema):
@@ -44,22 +46,22 @@ class RecipeSchema(Schema):
     ingredients: list[RecipeIngredientSchema]
 
 
-@api.get("/recipes", response=list[ModelRecipeSchema])
+@router.get("recipes", response=list[ModelRecipeSchema])
 def list_recipes(_request):
     return Recipe.objects.all()
 
 
-@api.get("/ingredients", response=list[ModelIngredientSchema])
+@router.get("ingredients", response=list[ModelIngredientSchema])
 def list_ingredients(_request):
     return Ingredient.objects.all()
 
 
-@api.get("/recipe-ingredients", response=list[ModelRecipeIngredientSchema])
+@router.get("recipe-ingredients", response=list[ModelRecipeIngredientSchema])
 def list_recipe_ingredients(_request):
     return RecipeIngredient.objects.all()
 
 
-@api.get("/all", response=list[RecipeSchema])
+@router.get("all", response=list[RecipeSchema])
 def recipe_data(_request):
     """
     Returns all recipes along with all the recipe ingredients that each contains.
@@ -77,27 +79,16 @@ def recipe_data(_request):
     return recipes
 
 
-class Error(Schema):
-    message: str
-
-
-@api.get("scrape", response={200: ScrapedRecipe, 400: Error})
+@router.get("scrape", response={200: ScrapedRecipe, 400: str})
 def scrape_recipe(_request, url: str):
     existing = Recipe.objects.filter(origin_url=url).exists()
     if existing:
-        return 403, {"message": "Recipe with given url already exists."}
+        return 403, "Recipe with given url already exists."
 
-    return {}
+    recipe = scrape(url)
+    try:
+        recipe.clean()
+    except ValidationError as e:
+        return 403, {"message": e.message}
 
-    # recipe = scrape(url)
-    # try:
-    #     recipe.clean()
-    # except ValidationError as e:
-    #     return 403, {"message": str(e)}
-
-    # return recipe
-
-
-urlpatterns = [
-    path("recipes/", api.urls),
-]
+    return recipe
