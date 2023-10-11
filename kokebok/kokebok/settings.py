@@ -9,6 +9,8 @@ env = environ.Env(
     DEBUG=(bool, False),
     ENV_FILE=(str, ".env"),  # Defauly to prod settings file
     STRICT_SSL=(bool, True),
+    ALLOWED_HOSTS=(list, []),
+    TRUSTED_ORIGINS=(list, []),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -24,7 +26,8 @@ if STRICT_SSL:
 
 SECRET_KEY = env.str("SECRET_KEY", default=get_random_secret_key())
 
-ALLOWED_HOSTS = env("ALLOWED_HOSTS").split(" ")
+ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+TRUSTED_ORIGINS = env("TRUSTED_ORIGINS")
 
 # User model
 AUTH_USER_MODEL = "core.User"
@@ -34,15 +37,10 @@ AUTH_USER_MODEL = "core.User"
 # We use Django's sessions for auth and secure endpoints using CSRF tokens
 
 # CORS
-CORS_ORIGIN_WHITELIST = (
-    [
-        # Local frontend server
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ]
-    if DEBUG
-    else ["https://" + host for host in ALLOWED_HOSTS]
-)
+if DEBUG:
+    CORS_ORIGIN_WHITELIST = ["http://localhost", "http://127.0.0.1"]
+else:
+    CORS_ORIGIN_WHITELIST = ["https://" + domain for domain in TRUSTED_ORIGINS]
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 CORS_ALLOW_CREDENTIALS = True  # Allows cookies to be sent with CORs
 
@@ -54,8 +52,8 @@ SESSION_COOKIE_SECURE = not DEBUG  # Don't require HTTPS cookie transfer in loca
 # CSRF
 CSRF_COOKIE_SAMESITE = "Strict"
 CSRF_COOKIE_HTTPONLY = True
-CSRF_TRUSTED_ORIGINS = CORS_ORIGIN_WHITELIST
 CSRF_COOKIE_SECURE = not DEBUG  # Don't require HTTPS cookie transfer in local dev
+CSRF_TRUSTED_ORIGINS = CORS_ORIGIN_WHITELIST
 
 # SSL
 # Leave out if deploying to fly -- all .dev domains require HTTPS automatically
