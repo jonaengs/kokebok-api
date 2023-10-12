@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 import environ
 from django.core.management.utils import get_random_secret_key
@@ -11,6 +12,7 @@ env = environ.Env(
     STRICT_SSL=(bool, True),
     ALLOWED_HOSTS=(list, []),
     TRUSTED_ORIGINS=(list, []),
+    OCR_ENABLED=(bool, True),
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -203,13 +205,33 @@ STORAGES = {
 CSP_IMG_SRC = ("'self'", "data:") + (
     (AWS_S3_CUSTOM_DOMAIN,) if not DEBUG else tuple()
 )
-CSP_STYLE_SRC = "'self'"
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
 CSP_SCRIPT_SRC = "'self'"
 CSP_CONNECT_SRC = "'self'"
 CSP_DEFAULT_SRC = "'none'"
 # Set these two to True when debugging CSP issues!
 CSP_REPORT_ONLY = False
 CSP_REPORT_URI = False
+
+
+# OCR (likely Google Cloud) provider
+OCR_ENABLED = env("OCR_ENABLED")
+OCR_PROVIDER: Literal["Google", "Amazon"] = "Google"
+if OCR_ENABLED:
+    if OCR_PROVIDER == "Google":
+        GOOGLE_CLOUD_CREDENTIALS = {
+            "type": "service_account",
+            "project_id": env("GOOGLE_PROJECT_ID"),
+            "private_key_id": env("GOOGLE_PRIVATE_KEY_ID"),
+            "private_key": env("GOOGLE_PRIVATE_KEY").replace("\\n", "\n"),
+            "client_email": env("GOOGLE_CLIENT_EMAIL"),
+            "client_id": env("GOOGLE_CLIENT_ID"),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": env("GOOGLE_CLIENT_X509_CERT_URL"),
+            "universe_domain": "googleapis.com",
+        }
 
 
 # Default primary key field type

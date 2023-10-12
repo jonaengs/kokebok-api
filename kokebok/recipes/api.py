@@ -1,13 +1,18 @@
+import base64
 from itertools import groupby
 
+import ninja
 from django.forms import ValidationError
 from ninja import Field, ModelSchema, Router, Schema
 from ninja.security import django_auth
+from recipes.image_parsing import parse_img
 from recipes.models import Ingredient, Recipe, RecipeIngredient
 from recipes.scraping import scrape
 from recipes.scraping.base import ScrapedRecipe
 
-router = Router(auth=django_auth)
+from kokebok import settings
+
+router = Router(auth=ninja.constants.NOT_SET if settings.DEBUG else django_auth)
 
 
 class ModelRecipeSchema(ModelSchema):
@@ -92,3 +97,19 @@ def scrape_recipe(_request, url: str):
         return 403, {"message": e.message}
 
     return recipe
+
+
+@router.get("vision", response={200: str, 404: str})
+def test_vision(request):
+    # TODO: Make POST, read image data from request
+    if not settings.OCR_ENABLED:
+        return 404, "OCR/Text-recognition service not enabled for this system"
+
+    file = "img_w_text_6.jpg"
+    with open(file, mode="rb") as f:
+        data = f.read()
+
+    b64_img = base64.b64encode(data)
+    result = parse_img(b64_img)
+    print(result)
+    return result

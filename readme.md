@@ -48,6 +48,17 @@ AWS_S3_REGION_NAME
 ```
 
 
+### OCR using Google Cloud
+In your Google Cloud Console, create a project for use with this app. Then add/enable the "Cloud Vision API" for your project. Create a Service Account and grant it the role of "Vertex AI User". Generate keys for that user and place the key/credentials file somewhere in this repository. Extract (into the `.env` file for example) the data from credentials file into the following environment variables:
+```
+GOOGLE_PROJECT_ID
+GOOGLE_PRIVATE_KEY_ID
+GOOGLE_PRIVATE_KEY
+GOOGLE_CLIENT_EMAIL
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_X509_CERT_URL
+```
+
 ## Development
 
 ### Wrong auto-import paths using VSCode/Pylance
