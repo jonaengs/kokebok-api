@@ -1,4 +1,3 @@
-import base64
 from itertools import groupby
 
 import ninja
@@ -99,17 +98,23 @@ def scrape_recipe(_request, url: str):
     return recipe
 
 
-@router.get("vision", response={200: str, 404: str})
-def test_vision(request):
-    # TODO: Make POST, read image data from request
+@router.post("from_image", response={200: ScrapedRecipe, 400: str, 404: str})
+def img_upload(request, img: ninja.files.UploadedFile):
     if not settings.OCR_ENABLED:
         return 404, "OCR/Text-recognition service not enabled for this system"
 
-    file = "img_w_text_6.jpg"
-    with open(file, mode="rb") as f:
-        data = f.read()
+    img_data = img.read()
 
-    b64_img = base64.b64encode(data)
-    result = parse_img(b64_img)
-    print(result)
-    return result
+    try:
+        recipe_data = parse_img(img_data)
+        recipe_data.clean()
+    except ValueError as e:
+        return 400, str(e)
+    except ValidationError as e:
+        return 400, str(e)
+    except Exception as e:
+        raise e
+        print(e)
+        return 400, "An error occured."
+
+    return recipe_data

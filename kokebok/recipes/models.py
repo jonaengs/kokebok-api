@@ -12,6 +12,10 @@ class Recipe(models.Model):
         FRENCH = "fr"
         ITALIAN = "it"
 
+        @classmethod
+        def codes(cls) -> list[str]:
+            return [ch[0] for ch in cls.choices]
+
     title = models.CharField(max_length=200, blank=False)
     preamble = models.TextField(blank=True)
     content = models.TextField(blank=True)

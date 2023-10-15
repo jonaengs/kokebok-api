@@ -48,15 +48,31 @@ IngredientGroupDict = dict[str, list[ScrapedRecipeIngredient]]
 
 
 class ScrapedRecipe(ModelSchema):
-    hero_image_link: str
+    hero_image_link: str | None = None
     ingredients: IngredientGroupDict
+    instructions: list[str] | str
 
     class Config:
         model = Recipe
-        model_exclude = ["hero_image", "created_at", "video_url", "other_source"]
+        model_exclude = [
+            "id",
+            "hero_image",
+            "created_at",
+            "video_url",
+            "other_source",
+        ]
 
     def clean(self):
-        if self.language and self.language not in Recipe.Languages.choices:
+        if self.language and self.language not in Recipe.Languages.codes():
+            old_language = self.language
+            # in case en-US an such
+            if "-" in self.language:
+                try:
+                    self.language = self.language.split("-")[0]
+                    return self.clean()
+                except ValidationError as e:
+                    self.language = old_language
+                    raise e
             raise ValidationError(f"Illegal language: {self.language}")
         for group_name, ingredients in self.ingredients.items():
             if not all(ingr.group_name == group_name for ingr in ingredients):

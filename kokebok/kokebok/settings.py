@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Literal
 
 import environ
+import openai
 from django.core.management.utils import get_random_secret_key
 
 # Declare env vars with their type and default value
@@ -232,6 +233,8 @@ if OCR_ENABLED:
             "client_x509_cert_url": env("GOOGLE_CLIENT_X509_CERT_URL"),
             "universe_domain": "googleapis.com",
         }
+
+    openai.api_key = env("OPENAI_SECRET_KEY")
 
 
 # Default primary key field type

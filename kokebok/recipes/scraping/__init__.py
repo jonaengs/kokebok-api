@@ -13,7 +13,7 @@ from recipes.scraping.base import (
 from recipes.scraping.registry import _registry
 
 
-def _try_parse_ingredient_string(s: str, group: str = "") -> ScrapedRecipeIngredient:
+def parse_ingredient_string(s: str, group: str = "") -> ScrapedRecipeIngredient:
     """
     Tries matching the ingredient string against:
     "<amt> <unit> <ingredient_name>"
@@ -23,8 +23,8 @@ def _try_parse_ingredient_string(s: str, group: str = "") -> ScrapedRecipeIngred
             break
 
     amount = float(s[:i] or 0)
-    maybe_measure = s[i:].strip().split()[0] if amount else ""
-    measure = UNIT_STRINGS.get(maybe_measure, "")
+    maybe_measure = s[i:].strip().split()[0]
+    measure = UNIT_STRINGS.get(maybe_measure, "count") if amount else ""
 
     if measure:
         ingredient_name = s[s.find(maybe_measure) + len(maybe_measure) :].strip()
@@ -60,7 +60,7 @@ def scrape(url: str | None, html: str | None = None) -> ScrapedRecipe:
             groups = scraper.ingredient_groups()
             scraped_ingredients = {
                 group: [
-                    _try_parse_ingredient_string(ingredient, group)
+                    parse_ingredient_string(ingredient, group)
                     for ingredient in group.ingredients
                 ]
                 for group in groups
@@ -68,7 +68,7 @@ def scrape(url: str | None, html: str | None = None) -> ScrapedRecipe:
         except:  # noqa
             scraped_ingredients = {
                 "": [
-                    _try_parse_ingredient_string(ingredient)
+                    parse_ingredient_string(ingredient)
                     for ingredient in _or(scraper.ingredients, list)
                 ]
             }
@@ -76,15 +76,16 @@ def scrape(url: str | None, html: str | None = None) -> ScrapedRecipe:
     return ScrapedRecipe(
         title=_or(scraper.title, str),
         original_author=_or(scraper.author, str),
-        language=_or(scraper.language(), str),
+        language=_or(scraper.language, str),
         preamble=scraper.my_preamble()
         if in_registry
         else _or(scraper.description, str),
+        instructions=scraper.instructions(),
         content=scraper.my_content() if in_registry else "",
         origin_url=url,
-        total_time=_or(scraper.total_time(), int),
-        servings=_or(scraper.yields(), int),
-        hero_image_link=_or(scraper.image(), str),
+        total_time=_or(scraper.total_time, lambda: None),
+        # servings=_or(scraper.yields, lambda : None),
+        hero_image_link=_or(scraper.image, str),
         ingredients=scraped_ingredients,
     )
 

@@ -21,6 +21,7 @@ django-storages = "^1.14.2"
 boto3 = "^1.28.62"
 django-csp = "^3.7"
 google-cloud-vision = "^3.4.4"
+openai = "^0.28.1"
 
 
 [tool.poetry.group.dev.dependencies]
