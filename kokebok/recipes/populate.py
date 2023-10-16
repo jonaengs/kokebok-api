@@ -78,7 +78,7 @@ _recipe_ingredients = [
         id=1007,
         recipe_id=1003,
         base_ingredient_id=1005,
-        amount=2,
+        base_amount=2,
         unit="count",
     ),
     RecipeIngredient(
@@ -86,7 +86,7 @@ _recipe_ingredients = [
         id=1008,
         recipe_id=1003,
         base_ingredient_id=1003,
-        amount=1 / 4,
+        base_amount=1 / 4,
         unit="tsp",
     ),
     RecipeIngredient(
@@ -94,7 +94,7 @@ _recipe_ingredients = [
         id=1009,
         recipe_id=1003,
         base_ingredient_id=1006,
-        amount=6,
+        base_amount=6,
         unit="dl",
     ),
     RecipeIngredient(
@@ -102,7 +102,7 @@ _recipe_ingredients = [
         id=1010,
         recipe_id=1003,
         base_ingredient_id=1008,
-        amount=0,
+        base_amount=0,
         unit="",
     ),
 ]

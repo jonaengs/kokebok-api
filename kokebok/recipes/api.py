@@ -2,6 +2,7 @@ from itertools import groupby
 
 import ninja
 from django.forms import ValidationError
+from django.shortcuts import get_object_or_404
 from ninja import Field, ModelSchema, Router, Schema
 from ninja.security import django_auth
 from recipes.image_parsing import parse_img
@@ -50,9 +51,51 @@ class RecipeSchema(Schema):
     ingredients: list[RecipeIngredientSchema]
 
 
+class BaseRecipeCreationSchema(ModelSchema):
+    class Config:
+        model = Recipe
+        model_exclude = ["id", "created_at"]
+
+
+class BaseRecipeIngredientCreationSchema(ModelSchema):
+    base_ingredient_id: int
+
+    class Config:
+        model = RecipeIngredient
+        model_exclude = ["id", "recipe", "base_ingredient"]
+
+
+class RecipeCreationSchema(Schema):
+    recipe: BaseRecipeCreationSchema
+    ingredients: list[BaseRecipeIngredientCreationSchema]
+
+
+@router.post("recipes")
+def create_recipe(request, recipe_data: RecipeCreationSchema):
+    recipe = Recipe(**recipe_data.recipe.dict())
+    recipe.full_clean()
+
+    ris = []
+    for recipe_ingredient in recipe_data.ingredients:
+        ri = RecipeIngredient(recipe=recipe, **recipe_ingredient.dict())
+        ri.full_clean(exclude=["recipe"])  # Recipe doesn't exist yet
+        ris.append(ri)
+
+    recipe.save()
+    for ri in ris:
+        ri.save()
+
+    return {"id": recipe.id}
+
+
 @router.get("recipes", response=list[ModelRecipeSchema])
 def list_recipes(_request):
     return Recipe.objects.all()
+
+
+@router.get("recipes/{recipe_id}", response=ModelRecipeSchema)
+def get_recipe(request, recipe_id: int):
+    return get_object_or_404(Recipe, id=recipe_id)
 
 
 @router.get("ingredients", response=list[ModelIngredientSchema])

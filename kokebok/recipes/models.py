@@ -17,27 +17,38 @@ class Recipe(models.Model):
             return [ch[0] for ch in cls.choices]
 
     title = models.CharField(max_length=200, blank=False)
-    preamble = models.TextField(blank=True)
-    content = models.TextField(blank=True)
+    preamble = models.TextField(blank=True, default="")
+    content = models.TextField(blank=True, default="")
     hero_image = models.ImageField(blank=True, upload_to="recipes/hero_images")
     created_at = models.DateTimeField(auto_now_add=True)
-    original_author = models.CharField(max_length=128, blank=True)
-    language = models.CharField(max_length=8, choices=Languages.choices, blank=True)
-
-    # Numeric data
-    total_time = models.IntegerField(
-        null=True, blank=True, validators=[MinValueValidator(0)]
+    original_author = models.CharField(max_length=128, blank=True, default="")
+    language = models.CharField(
+        max_length=8, choices=Languages.choices, blank=True, default=""
     )
-    servings = models.IntegerField(
+
+    total_time = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        default=0,
+    )
+
+    # Recipe yields consists of two parts:
+    # the number of items/servings, and the name of the item.
+    # Thus, we can support both "5 cookies" and "2 servings"
+    yields_type = models.CharField(
+        blank=True, max_length=32, default=""
+    )  # blank => "serving"  # noqa
+    yields_number = models.IntegerField(
         null=True, blank=True, validators=[MinValueValidator(0)]
     )
 
     # For example, if the recipe has an accompanying youtube video
-    video_url = models.URLField(blank=True)
+    video_url = models.URLField(blank=True, default="")
     # Source url if scraped or otherwise retrieved from a web page
     origin_url = models.URLField(blank=True, null=True, unique=True)
     # For specifying any other sources: books, people, ...
-    other_source = models.CharField(max_length=256, blank=True)
+    other_source = models.CharField(max_length=256, blank=True, default="")
 
     def __repr__(self) -> str:
         return self.title
@@ -104,6 +115,7 @@ class RecipeIngredient(models.Model):
         SLICE = "slice"
         CENTIMETRE = "cm"
         INCH = "inch"
+        BLANK = ""
 
     recipe = models.ForeignKey(
         to=Recipe, on_delete=models.CASCADE, related_name="recipe_ingredients"
@@ -128,6 +140,7 @@ class RecipeIngredient(models.Model):
         max_length=16,
         blank=True,
         choices=Units.choices,
+        default=Units.BLANK,
     )
 
     def clean(self):

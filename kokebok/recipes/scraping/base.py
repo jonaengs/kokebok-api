@@ -50,7 +50,6 @@ IngredientGroupDict = dict[str, list[ScrapedRecipeIngredient]]
 class ScrapedRecipe(ModelSchema):
     hero_image_link: str | None = None
     ingredients: IngredientGroupDict
-    instructions: list[str] | str
 
     class Config:
         model = Recipe

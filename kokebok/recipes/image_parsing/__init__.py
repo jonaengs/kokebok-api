@@ -94,6 +94,11 @@ def _to_scraped_recipe(parsed_recipe: GPTRecipe):
             for key, t in get_type_hints(typd).items()
         }
 
+    def join_instructions(instrs: list[str]) -> str:
+        return "\n".join(f"{i}. " + instr for i, instr in enumerate(instrs, start=1))
+
+    filled: GPTRecipe = fill_with_defaults(parsed_recipe, GPTRecipe)  # type: ignore[arg-type]  # noqa
+
     scraped_ingredients = {
         group_name: [
             parse_ingredient_string(ingredient, group_name)
@@ -101,9 +106,11 @@ def _to_scraped_recipe(parsed_recipe: GPTRecipe):
         ]
         for group_name, ingredients in parsed_recipe["ingredients"].items()
     }
+    instructions_str = join_instructions(filled["instructions"])
 
-    filled = fill_with_defaults(parsed_recipe, GPTRecipe)  # type: ignore[arg-type]
-    as_scraped = ScrapedRecipe(
-        **(filled | {"ingredients": scraped_ingredients}),
-    )
+    overwrites = {
+        "ingredients": scraped_ingredients,
+        "content": instructions_str + "\n\n" + filled["content"],
+    }
+    as_scraped = ScrapedRecipe(**(filled | overwrites))
     return as_scraped
