@@ -1,6 +1,7 @@
 from django.forms import ValidationError
 from django.test import TestCase
-from recipes.models import Ingredient
+from django.urls import reverse
+from recipes.models import Ingredient, Recipe
 
 
 class IngredientTests(TestCase):
@@ -21,3 +22,26 @@ class IngredientTests(TestCase):
         # Ingredient must have at least one name
         make_f = lambda: Ingredient.objects.create().clean()  # noqa
         self.assertRaises(ValidationError, make_f)
+
+    def test_read_api_ok(self):
+        Recipe.objects.create(title="t", id=123)
+        func_names = [
+            # Recipe
+            ("recipe_list", []),
+            ("recipe_detail", [123]),
+            ("recipe_overview", []),
+            #
+            ("ingredient_list", []),
+            ("recipe_ingredient_list", []),
+        ]
+        url_names = [("api-1.0.0:" + s, args) for s, args in func_names]
+        for url_name, args in url_names:
+            url = reverse(url_name, args=args)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+
+    def test_api_add_recipe_ok(self):
+        url = reverse("api-1.0.0:" + "recipe_add")
+        data = {"recipe": {"title": "test_title"}, "ingredients": []}
+        response = self.client.post(url, data, content_type="application/json")
+        self.assertEqual(response.status_code, 200)

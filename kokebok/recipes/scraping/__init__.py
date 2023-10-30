@@ -75,7 +75,7 @@ def scrape(url: str | None, html: str | None = None) -> ScrapedRecipe:
 
     return ScrapedRecipe(
         title=_or(scraper.title, str),
-        original_author=_or(scraper.author, str),
+        original_author=_or(scraper.author, str) or "",
         language=_or(scraper.language, str),
         preamble=scraper.my_preamble()
         if in_registry

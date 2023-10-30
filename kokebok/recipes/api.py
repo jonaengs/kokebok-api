@@ -71,7 +71,7 @@ class RecipeCreationSchema(Schema):
 
 
 @router.post("recipes")
-def create_recipe(request, recipe_data: RecipeCreationSchema):
+def recipe_add(request, recipe_data: RecipeCreationSchema):
     recipe = Recipe(**recipe_data.recipe.dict())
     recipe.full_clean()
 
@@ -89,27 +89,27 @@ def create_recipe(request, recipe_data: RecipeCreationSchema):
 
 
 @router.get("recipes", response=list[ModelRecipeSchema])
-def list_recipes(_request):
+def recipe_list(_request):
     return Recipe.objects.all()
 
 
 @router.get("recipes/{recipe_id}", response=ModelRecipeSchema)
-def get_recipe(request, recipe_id: int):
+def recipe_detail(request, recipe_id: int):
     return get_object_or_404(Recipe, id=recipe_id)
 
 
 @router.get("ingredients", response=list[ModelIngredientSchema])
-def list_ingredients(_request):
+def ingredient_list(_request):
     return Ingredient.objects.all()
 
 
 @router.get("recipe-ingredients", response=list[ModelRecipeIngredientSchema])
-def list_recipe_ingredients(_request):
+def recipe_ingredient_list(_request):
     return RecipeIngredient.objects.all()
 
 
 @router.get("all", response=list[RecipeSchema])
-def recipe_data(_request):
+def recipe_overview(_request):
     """
     Returns all recipes along with all the recipe ingredients that each contains.
 

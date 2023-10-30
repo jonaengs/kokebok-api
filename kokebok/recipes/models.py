@@ -30,7 +30,6 @@ class Recipe(models.Model):
         null=True,
         blank=True,
         validators=[MinValueValidator(0)],
-        default=0,
     )
 
     # Recipe yields consists of two parts:

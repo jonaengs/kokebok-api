@@ -41,7 +41,7 @@ AUTH_USER_MODEL = "core.User"
 
 # CORS
 if DEBUG:
-    CORS_ORIGIN_WHITELIST = ["http://localhost", "http://127.0.0.1"]
+    CORS_ORIGIN_WHITELIST = ["http://localhost:5173", "http://127.0.0.1:5173"]
 else:
     CORS_ORIGIN_WHITELIST = ["https://" + domain for domain in TRUSTED_ORIGINS]
 CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
