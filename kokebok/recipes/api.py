@@ -3,8 +3,14 @@ from itertools import groupby
 import ninja
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
-from ninja import Field, ModelSchema, Router, Schema
+from ninja import Router
 from ninja.security import django_auth
+from recipes.api_schemas import (
+    FullRecipeCreationSchema,
+    FullRecipeDetailSchema,
+    FullRecipeListSchema,
+    IngredientDetailSchema,
+)
 from recipes.image_parsing import parse_img
 from recipes.models import Ingredient, Recipe, RecipeIngredient
 from recipes.scraping import scrape
@@ -12,71 +18,20 @@ from recipes.scraping.base import ScrapedRecipe
 
 from kokebok import settings
 
-router = Router(auth=ninja.constants.NOT_SET if settings.DEBUG else django_auth)
-
-
-class ModelRecipeSchema(ModelSchema):
-    class Config:
-        model = Recipe
-        model_fields = "__all__"  # TODO: don't use __all__
-
-
-class ModelIngredientSchema(ModelSchema):
-    names: list[str | None]
-
-    class Config:
-        model = Ingredient
-        model_fields = ["id", "is_ubiquitous"]
-
-    @staticmethod
-    def resolve_names(obj):
-        return obj.get_names()
-
-
-class ModelRecipeIngredientSchema(ModelSchema):
-    class Config:
-        model = RecipeIngredient
-        model_fields = "__all__"  # TODO: don't use __all__
-
-
-class RecipeIngredientSchema(Schema):
-    id: int
-    name: str = Field(alias="name_in_recipe")
-    is_optional: bool
-    ingredient_id: int = Field(alias="base_ingredient_id")
-
-
-class RecipeSchema(Schema):
-    recipe: ModelRecipeSchema
-    ingredients: list[RecipeIngredientSchema]
-
-
-class BaseRecipeCreationSchema(ModelSchema):
-    class Config:
-        model = Recipe
-        model_exclude = ["id", "created_at"]
-
-
-class BaseRecipeIngredientCreationSchema(ModelSchema):
-    base_ingredient_id: int
-
-    class Config:
-        model = RecipeIngredient
-        model_exclude = ["id", "recipe", "base_ingredient"]
-
-
-class RecipeCreationSchema(Schema):
-    recipe: BaseRecipeCreationSchema
-    ingredients: list[BaseRecipeIngredientCreationSchema]
+router = Router(
+    auth=ninja.constants.NOT_SET if settings.DEBUG else django_auth, tags=["recipes"]
+)
 
 
 @router.post("recipes")
-def recipe_add(request, recipe_data: RecipeCreationSchema):
-    recipe = Recipe(**recipe_data.recipe.dict())
+def recipe_add(request, recipe_schema: FullRecipeCreationSchema):
+    recipe_data = recipe_schema.dict()
+    ingredients = recipe_data.pop("ingredients")
+    recipe = Recipe(**recipe_data)
     recipe.full_clean()
 
     ris = []
-    for recipe_ingredient in recipe_data.ingredients:
+    for recipe_ingredient in ingredients:
         ri = RecipeIngredient(recipe=recipe, **recipe_ingredient.dict())
         ri.full_clean(exclude=["recipe"])  # Recipe doesn't exist yet
         ris.append(ri)
@@ -88,45 +43,44 @@ def recipe_add(request, recipe_data: RecipeCreationSchema):
     return {"id": recipe.id}
 
 
-@router.get("recipes", response=list[ModelRecipeSchema])
+@router.get("recipes", response=list[FullRecipeListSchema])
 def recipe_list(_request):
-    return Recipe.objects.all()
-
-
-@router.get("recipes/{recipe_id}", response=ModelRecipeSchema)
-def recipe_detail(request, recipe_id: int):
-    return get_object_or_404(Recipe, id=recipe_id)
-
-
-@router.get("ingredients", response=list[ModelIngredientSchema])
-def ingredient_list(_request):
-    return Ingredient.objects.all()
-
-
-@router.get("recipe-ingredients", response=list[ModelRecipeIngredientSchema])
-def recipe_ingredient_list(_request):
-    return RecipeIngredient.objects.all()
-
-
-@router.get("all", response=list[RecipeSchema])
-def recipe_overview(_request):
     """
     Returns all recipes along with all the recipe ingredients that each contains.
 
-    Because we join from RecipeIngredient, recipes without any recipe
-    ingredients defined will not be returned.
+    Because we join from RecipeIngredient, recipes without any recipe ingredients
+    defined will not be returned. (Bug or feature? You decide!)
     """
     # Iterate over data manually to prevent django from executing tons of subqueries
-    all_data = RecipeIngredient.objects.select_related("recipe").order_by("recipe")
+    rec_ingrs = RecipeIngredient.objects.select_related("recipe").order_by("recipe")
     recipes = []
-    for _, group in groupby(all_data, key=lambda ri: ri.recipe.id):
+    for _, group in groupby(rec_ingrs, key=lambda ri: ri.recipe.id):
         elements = list(group)
-        recipes.append(RecipeSchema(recipe=elements[0].recipe, ingredients=elements))
+        recipes.append(
+            FullRecipeListSchema(**elements[0].recipe.__dict__, ingredients=elements)
+        )
 
     return recipes
 
 
-@router.get("scrape", response={200: ScrapedRecipe, 400: str})
+@router.get("recipes/{recipe_id}", response=FullRecipeDetailSchema)
+def recipe_detail(request, recipe_id: int):
+    qset = Recipe.objects.prefetch_related("recipe_ingredients")
+    recipe = get_object_or_404(qset, id=recipe_id)
+    return recipe
+
+
+@router.get("ingredients", response=list[IngredientDetailSchema])
+def ingredient_list(_request):
+    return Ingredient.objects.all()
+
+
+#
+# Non-simple CRUD APIs below
+#
+
+
+@router.get("scrape", response={200: ScrapedRecipe, 400: str}, tags=["scrape"])
 def scrape_recipe(_request, url: str):
     existing = Recipe.objects.filter(origin_url=url).exists()
     if existing:
@@ -141,7 +95,9 @@ def scrape_recipe(_request, url: str):
     return recipe
 
 
-@router.post("from_image", response={200: ScrapedRecipe, 400: str, 404: str})
+@router.post(
+    "from_image", response={200: ScrapedRecipe, 400: str, 404: str}, tags=["scrape"]
+)
 def img_upload(request, img: ninja.files.UploadedFile):
     if not settings.OCR_ENABLED:
         return 404, "OCR/Text-recognition service not enabled for this system"

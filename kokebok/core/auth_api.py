@@ -3,7 +3,7 @@ from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from ninja import Router, Schema
 
-router = Router()
+router = Router(tags=["auth"])
 
 
 class LoginDetails(Schema):

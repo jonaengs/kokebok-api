@@ -50,10 +50,10 @@ class Recipe(models.Model):
     other_source = models.CharField(max_length=256, blank=True, default="")
 
     def __repr__(self) -> str:
-        return self.title
+        return f"<Recipe: {self.title}>"
 
     def __str__(self) -> str:
-        return repr(self)
+        return self.title
 
 
 @receiver(models.signals.post_delete, sender=Recipe)
@@ -146,7 +146,7 @@ class RecipeIngredient(models.Model):
         return super().clean()
 
     def __repr__(self) -> str:
-        return self.recipe.title + ": " + self.name_in_recipe
+        return f"<{self.recipe.title}: {self.name_in_recipe}>"
 
     def __str__(self) -> str:
-        return repr(self)
+        return f"{self.recipe.title}: {self.name_in_recipe}"
