@@ -62,9 +62,12 @@ class RecipeIngredientCreationSchema(ModelSchema):
 
 
 class RecipeIngredientUpdateSchema(ModelSchema):
+    base_ingredient_id: int
+    id: int | None = None  # Optional when used with RecipeUpdateSchema
+
     class Config:
         model = RecipeIngredient
-        model_exclude = ["recipe", "id"]
+        model_exclude = ["id", "recipe", "base_ingredient"]
 
 
 ################

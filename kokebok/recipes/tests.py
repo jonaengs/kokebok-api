@@ -1,5 +1,6 @@
 import json
 
+from django.db.models import Q
 from django.forms import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -18,7 +19,7 @@ class APITests(TestCase):
         # manner that ninja's api does by default
         return json.loads(json.dumps(schema, cls=NinjaJSONEncoder))
 
-    def test_recipe_lists(self):
+    def test_recipe_list(self):
         # Setup test data
         rec = Recipe.objects.create(title="r", id=123)
         ingr = Ingredient.objects.create(name_en="i", id=321)
@@ -47,7 +48,7 @@ class APITests(TestCase):
         expected_recipe = self._as_api_response_data(recipe_as_schema)
         self.assertEqual(returned_recipe, expected_recipe)
 
-    def test_ingredient_lists(self):
+    def test_ingredient_list(self):
         ingr = Ingredient.objects.create(name_en="ingr", id=321)
 
         # Test with middleware and everything
@@ -80,7 +81,7 @@ class APITests(TestCase):
         expected_ingredient = self._as_api_response_data(recipe_as_schema)
         self.assertEqual(returned_recipe, expected_ingredient)
 
-    def test_api_add_recipe_ok(self):
+    def test_recipe_add(self):
         # Create base ingredient for RecipeIngredient to refer to
         Ingredient.objects.create(id=123, name_en="ingredient")
 
@@ -103,6 +104,72 @@ class APITests(TestCase):
         # and that its name matches the name given in the request
         created_ri = RecipeIngredient.objects.get(recipe_id=recipe_id)
         self.assertEqual(created_ri.name_in_recipe, "ingr")
+
+    def test_recipe_update(self):
+        """
+        Updating a recipe can involve both adding and removing existing recipe
+        ingredients. This test tests both cases, with one ri being deleted
+        and one added in the same update request.
+        """
+
+        # Setup test data
+        rec = Recipe.objects.create(title="old title", id=111)
+        ingr = Ingredient.objects.create(name_en="i", id=222)
+        ri_to_rename = RecipeIngredient.objects.create(
+            id=333,
+            name_in_recipe="rename me",
+            recipe=rec,
+            base_ingredient=ingr,
+        )
+        ri_to_delete = RecipeIngredient.objects.create(
+            id=444,
+            name_in_recipe="delete me",
+            recipe=rec,
+            base_ingredient=ingr,
+        )
+
+        # Define data to PUT
+        data = {
+            "title": "new title",
+            "hero_image": "",
+            "ingredients": [
+                {"id": 333, "name_in_recipe": "new name", "base_ingredient_id": 222},
+                {"name_in_recipe": "add me", "base_ingredient_id": 222},
+            ],
+        }
+
+        # Check response ok
+        url = reverse("api-1.0.0:recipe_update", args=[111])
+        response = self.client.put(url, data, content_type="application/json")
+        self.assertEqual(response.status_code, 200, msg=response.content)
+
+        # Check that Recipe and RecipeIngredients were updated as expected
+        self.assertEqual("old title", rec.title)
+        self.assertEqual("rename me", ri_to_rename.name_in_recipe)
+        rec.refresh_from_db()
+        ri_to_rename.refresh_from_db()
+        self.assertEqual("new title", rec.title)
+        self.assertEqual("new name", ri_to_rename.name_in_recipe)
+
+        # Check deletion and creation
+        with self.assertRaises(RecipeIngredient.DoesNotExist):
+            ri_to_delete.refresh_from_db()
+        RecipeIngredient.objects.get(Q(recipe_id=rec.id) & Q(name_in_recipe="add me"))
+
+        # Make sure we didn't create any objects
+        self.assertEqual(Recipe.objects.count(), 1)
+        self.assertEqual(RecipeIngredient.objects.count(), 2)
+
+    def test_ingredient_add(self):
+        data = {"name_no": "norsk test", "name_en": "english test"}
+        url = reverse("api-1.0.0:ingredient_add")
+        response = self.client.post(url, data, content_type="application/json")
+        self.assertEqual(response.status_code, 200, msg=response.content)
+
+        ingredient_id = json.loads(response.content)["id"]
+        self.assertTrue(Ingredient.objects.filter(id=ingredient_id).exists())
+        self.assertEqual(Ingredient.objects.get(id=ingredient_id).name_no, "norsk test")
+        self.assertEqual(Ingredient.objects.get(id=ingredient_id).name_it, None)
 
 
 class IngredientTests(TestCase):
