@@ -27,15 +27,21 @@ router = Router(
 def recipe_add(request, recipe_schema: FullRecipeCreationSchema):
     recipe_data = recipe_schema.dict()
     ingredients = recipe_data.pop("ingredients")
+
+    # Create model instances
     recipe = Recipe(**recipe_data)
+    ris = [
+        RecipeIngredient(recipe=recipe, **recipe_ingredient)
+        for recipe_ingredient in ingredients
+    ]
+
+    # Perform a full clean of recipe and recipe ingredients before saving
     recipe.full_clean()
+    for ri in ris:
+        # Exclude recipe because it technically doesn't exist yet (before saving)
+        ri.full_clean(exclude=["recipe"])
 
-    ris = []
-    for recipe_ingredient in ingredients:
-        ri = RecipeIngredient(recipe=recipe, **recipe_ingredient.dict())
-        ri.full_clean(exclude=["recipe"])  # Recipe doesn't exist yet
-        ris.append(ri)
-
+    # Save
     recipe.save()
     for ri in ris:
         ri.save()
@@ -57,13 +63,15 @@ def recipe_list(_request):
     for _, group in groupby(rec_ingrs, key=lambda ri: ri.recipe.id):
         elements = list(group)
         recipes.append(
-            FullRecipeListSchema(**elements[0].recipe.__dict__, ingredients=elements)
+            FullRecipeListSchema(
+                **elements[0].recipe.__dict__, recipe_ingredients=elements
+            )
         )
 
     return recipes
 
 
-@router.get("recipes/{recipe_id}", response=FullRecipeDetailSchema)
+@router.get("recipe/{recipe_id}", response=FullRecipeDetailSchema)
 def recipe_detail(request, recipe_id: int):
     qset = Recipe.objects.prefetch_related("recipe_ingredients")
     recipe = get_object_or_404(qset, id=recipe_id)

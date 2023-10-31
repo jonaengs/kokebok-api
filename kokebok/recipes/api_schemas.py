@@ -78,7 +78,7 @@ class FullRecipeListSchema(ModelSchema):
     like recipe content and instructions and recipe ingredient unit
     """
 
-    ingredients: list[RecipeIngredientListSchema]
+    ingredients: list[RecipeIngredientListSchema] = Field(alias="recipe_ingredients")
 
     class Config:
         model = Recipe
@@ -111,4 +111,4 @@ class FullRecipeUpdateSchema(ModelSchema):
 
     class Config:
         model = Recipe
-        model_exclude = ["created_at"]
+        model_exclude = ["id", "created_at"]

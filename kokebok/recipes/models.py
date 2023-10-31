@@ -95,7 +95,7 @@ class Ingredient(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    class Units(models.Choices):
+    class Units(models.TextChoices):
         # Weight
         GRAM = "g"
         KILOGRAM = "kg"
@@ -128,8 +128,8 @@ class RecipeIngredient(models.Model):
     name_in_recipe = models.CharField(max_length=128)
     is_optional = models.BooleanField(default=False)
 
-    # Name of the sub-recipe the ingredient is part of. Optional.
-    group_name = models.CharField(max_length=128, blank=True)
+    # Name of the sub-recipe the ingredient is part of
+    group_name = models.CharField(max_length=128, blank=True, default="")
 
     # The amount to use when making the base recipe
     base_amount = models.FloatField(
