@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import NotRequired, TypedDict, get_args, get_type_hints
+from typing import TypedDict, get_args, get_type_hints
 
 from django.core.exceptions import ImproperlyConfigured
 from recipes.image_parsing.example_data import (
@@ -24,6 +24,7 @@ if settings.OCR_ENABLED:
 
 # TODO: Remove the alternative definition when we require Python >= 3.11
 if sys.version_info >= (3, 11):
+    from typing import NotRequired
 
     class GPTRecipe(TypedDict):
         title: NotRequired[str]

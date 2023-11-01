@@ -1,6 +1,7 @@
 **/__pycache__/**
 .vscode/
 .venv/
+venv
 *.sqlite3
 .mypy_cache
 *.env*
