@@ -24,10 +24,7 @@ class APITests(TestCase):
         rec = Recipe.objects.create(title="r", id=123)
         ingr = Ingredient.objects.create(name_en="i", id=321)
         _ = RecipeIngredient.objects.create(
-            id=231,
-            name_in_recipe="ri",
-            recipe=rec,
-            base_ingredient=ingr,
+            id=231, name_in_recipe="ri", recipe=rec, base_ingredient=ingr
         )
 
         # Check response ok
@@ -66,7 +63,7 @@ class APITests(TestCase):
     def test_recipe_detail(self):
         rec = Recipe.objects.create(title="t", id=123)
 
-        url = reverse("api-1.0.0:recipe_detail", args=[123])
+        url = reverse("api-1.0.0:recipe_detail", args=[rec.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
@@ -139,17 +136,21 @@ class APITests(TestCase):
         }
 
         # Check response ok
-        url = reverse("api-1.0.0:recipe_update", args=[111])
+        url = reverse("api-1.0.0:recipe_update", args=[rec.id])
         response = self.client.put(url, data, content_type="application/json")
         self.assertEqual(response.status_code, 200, msg=response.content)
 
         # Check that Recipe and RecipeIngredients were updated as expected
-        self.assertEqual("old title", rec.title)
-        self.assertEqual("rename me", ri_to_rename.name_in_recipe)
+        self.assertEqual(rec.title, "old title")
+        self.assertEqual(ri_to_rename.name_in_recipe, "rename me")
         rec.refresh_from_db()
         ri_to_rename.refresh_from_db()
-        self.assertEqual("new title", rec.title)
-        self.assertEqual("new name", ri_to_rename.name_in_recipe)
+        self.assertEqual(rec.title, "new title")
+        self.assertEqual(ri_to_rename.name_in_recipe, "new name")
+        # Check that response data matches db data
+        resp_data = json.loads(response.content)
+        self.assertEqual(resp_data["title"], "new title")
+        self.assertEqual(resp_data["ingredients"][0]["name_in_recipe"], "new name")
 
         # Check deletion and creation
         with self.assertRaises(RecipeIngredient.DoesNotExist):
@@ -159,6 +160,27 @@ class APITests(TestCase):
         # Make sure we didn't create any objects
         self.assertEqual(Recipe.objects.count(), 1)
         self.assertEqual(RecipeIngredient.objects.count(), 2)
+
+    def test_recipe_delete(self):
+        # Setup test data
+        rec = Recipe.objects.create(title="r", id=111)
+        ingr = Ingredient.objects.create(name_en="iii", id=222)
+        ri = RecipeIngredient.objects.create(
+            id=333, name_in_recipe="ri", recipe=rec, base_ingredient=ingr
+        )
+
+        url = reverse("api-1.0.0:recipe_delete", args=[rec.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, 200)
+
+        # Assert deletion
+        with self.assertRaises(Recipe.DoesNotExist):
+            rec.refresh_from_db()
+        with self.assertRaises(RecipeIngredient.DoesNotExist):
+            ri.refresh_from_db()
+
+        # Check response data (a little)
+        self.assertEqual(json.loads(response.content)["id"], rec.id)
 
     def test_ingredient_add(self):
         data = {"name_no": "norsk test", "name_en": "english test"}
@@ -170,6 +192,47 @@ class APITests(TestCase):
         self.assertTrue(Ingredient.objects.filter(id=ingredient_id).exists())
         self.assertEqual(Ingredient.objects.get(id=ingredient_id).name_no, "norsk test")
         self.assertEqual(Ingredient.objects.get(id=ingredient_id).name_it, None)
+
+    def test_ingredient_update(self):
+        # Update to change en name, remove no name and add de name
+        # and set not ubiquitous (implicitly)
+        ingr = Ingredient.objects.create(
+            id=123, name_en="old name", name_no="deleteme", is_ubiquitous=True
+        )
+        data = {"name_en": "new name", "name_no": None, "name_de": "created name"}
+
+        # Check operation ok
+        url = reverse("api-1.0.0:ingredient_update", args=[ingr.id])
+        response = self.client.put(url, data, content_type="application/json")
+        self.assertEqual(response.status_code, 200, msg=response.content)
+
+        # Check db data as expected
+        ingr.refresh_from_db()
+        self.assertEqual(ingr.name_en, "new name")
+        self.assertIsNone(ingr.name_no)
+        self.assertEqual(ingr.name_de, "created name")
+        self.assertFalse(ingr.is_ubiquitous)
+
+        # Check response data matches db data
+        resp_data = json.loads(response.content)
+        self.assertEqual(resp_data["name_en"], "new name")
+        self.assertIsNone(resp_data["name_no"])
+        self.assertEqual(resp_data["name_de"], "created name")
+        self.assertFalse(resp_data["is_ubiquitous"])
+
+    def test_ingredient_delete(self):
+        ingr = Ingredient.objects.create(id=123, name_en="deleteme")
+        url = reverse("api-1.0.0:ingredient_delete", args=[ingr.id])
+        response = self.client.delete(url)
+
+        # assert deletion
+        with self.assertRaises(Ingredient.DoesNotExist):
+            ingr.refresh_from_db()
+
+        # check response contents
+        ingredient_as_schema = IngredientDetailSchema.from_orm(ingr)
+        expected_ingredient = self._as_api_response_data(ingredient_as_schema)
+        self.assertEqual(json.loads(response.content), expected_ingredient)
 
 
 class IngredientTests(TestCase):

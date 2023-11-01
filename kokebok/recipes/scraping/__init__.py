@@ -80,9 +80,7 @@ def scrape(url: str | None, html: str | None = None) -> ScrapedRecipe:
         preamble=scraper.my_preamble()
         if in_registry
         else _or(scraper.description, str),
-        content=scraper.my_content()
-        if in_registry
-        else _or(scraper.instructions, str),
+        content=scraper.my_content() if in_registry else _or(scraper.instructions, str),
         origin_url=url,
         total_time=_or(scraper.total_time, lambda: None),
         # servings=_or(scraper.yields, lambda : None),

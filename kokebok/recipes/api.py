@@ -14,6 +14,7 @@ from recipes.api_schemas import (
     FullRecipeUpdateSchema,
     IngredientCreationSchema,
     IngredientDetailSchema,
+    IngredientUpdateSchema,
 )
 from recipes.image_parsing import parse_img
 from recipes.models import Ingredient, Recipe, RecipeIngredient
@@ -127,6 +128,16 @@ def recipe_update(request, recipe_id: int, full_recipe: FullRecipeUpdateSchema):
             else:
                 RecipeIngredient.objects.create(**ingredient, recipe_id=recipe.id)
 
+    recipe.refresh_from_db()
+    return recipe
+
+
+@router.delete("recipe/{recipe_id}", response=FullRecipeDetailSchema)
+def recipe_delete(_request, recipe_id: int):
+    recipe = get_object_or_404(Recipe, id=recipe_id)
+    # We rely on the delete=cascade setting deleting recipe ingredients here
+    recipe.delete()
+    recipe.id = recipe_id  # id is set to None on deletion
     return recipe
 
 
@@ -138,6 +149,25 @@ def ingredient_list(_request):
 @router.post("ingredients", response=IngredientDetailSchema)
 def ingredient_add(_request, ingredient: IngredientCreationSchema):
     ingredient = Ingredient.objects.create(**ingredient.dict())
+    return ingredient
+
+
+@router.put("ingredients/{ingredient_id}", response=IngredientDetailSchema)
+def ingredient_update(
+    _request, ingredient_id: int, ingredient_data: IngredientUpdateSchema
+):
+    ingredient_qs = Ingredient.objects.filter(id=ingredient_id)
+    ingredient = get_object_or_404(ingredient_qs, id=ingredient_id)
+    ingredient_qs.update(**ingredient_data.dict())
+    ingredient.refresh_from_db()
+    return ingredient
+
+
+@router.delete("ingredients/{ingredient_id}", response=IngredientDetailSchema)
+def ingredient_delete(_request, ingredient_id: int):
+    ingredient = get_object_or_404(Ingredient, id=ingredient_id)
+    ingredient.delete()
+    ingredient.id = ingredient_id  # id is set to None on deletion
     return ingredient
 
 
