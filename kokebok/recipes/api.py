@@ -6,6 +6,7 @@ from django.db import transaction
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
 from ninja import Router
+from ninja.files import UploadedFile
 from ninja.security import django_auth
 from recipes.api_schemas import (
     FullRecipeCreationSchema,
@@ -29,12 +30,14 @@ router = Router(
 
 
 @router.post("recipes")
-def recipe_add(request, full_recipe: FullRecipeCreationSchema):
+def recipe_add(
+    request, full_recipe: FullRecipeCreationSchema, hero_image: UploadedFile = None
+):
     recipe_data = full_recipe.dict()
     ingredients = recipe_data.pop("ingredients")
 
     # Create model instances
-    recipe = Recipe(**recipe_data)
+    recipe = Recipe(**recipe_data, hero_image=hero_image)
     ris = [
         RecipeIngredient(recipe=recipe, **recipe_ingredient)
         for recipe_ingredient in ingredients
@@ -84,7 +87,7 @@ def recipe_detail(request, recipe_id: int):
     return recipe
 
 
-@router.put("recipe/{recipe_id}", response={200: FullRecipeDetailSchema, 403: str})
+@router.put("recipe/{recipe_id}", response={200: FullRecipeDetailSchema, 403: dict})
 def recipe_update(request, recipe_id: int, full_recipe: FullRecipeUpdateSchema):
     """
     Returns the update recipe and recipe ingredients
@@ -104,29 +107,35 @@ def recipe_update(request, recipe_id: int, full_recipe: FullRecipeUpdateSchema):
 
     # Validation
     recipe = get_object_or_404(recipe_qs, id=recipe_id)  # error if recipe id not found
-    _id_counter = Counter(ri["id"] for ri in ingredients)
-    if max(_id_counter.values()) > 1:
-        return 403, "Duplicate ingredient id detected"
+    ri_id_counts = Counter(ri["id"] for ri in ingredients if ri["id"])
+    if ri_id_counts and max(ri_id_counts.values()) > 1:
+        return 403, {"ingredients": "Duplicate ingredient id detected"}
 
     # Perform updates
     # If this is slow, try deleting all ris and then creating all in the request instead
-    with transaction.atomic():
-        recipe_qs.update(**recipe_data)
+    try:
+        with transaction.atomic(durable=True):
+            recipe_qs.update(**recipe_data)
 
-        # Delete ingredients missing from the request
-        # Has to be performed before creation due to lazy django querying weirdness
-        sent_ri_ids = set(_id_counter.keys())
-        missing_ris = recipe_ingredients.exclude(id__in=sent_ri_ids)
-        for existing_ingredient in missing_ris:
-            existing_ingredient.delete()
+            # Delete ingredients missing from the request
+            # Has to be performed before creation due to lazy django querying weirdness
+            sent_ri_ids = set(ri_id_counts.keys())
+            missing_ris = recipe_ingredients.exclude(id__in=sent_ri_ids)
+            for existing_ingredient in missing_ris:
+                existing_ingredient.delete()
 
-        # Update or create ingredients included in the request
-        for ingredient in ingredients:
-            if not ingredient.get("id") is None:
-                ri = recipe_ingredients.filter(id=ingredient["id"])
-                ri.update(**ingredient)
-            else:
-                RecipeIngredient.objects.create(**ingredient, recipe_id=recipe.id)
+            # Update or create ingredients included in the request
+            for ingredient in ingredients:
+                if not ingredient.get("id") is None:
+                    ri = recipe_ingredients.filter(id=ingredient["id"])
+                    ri.update(**ingredient)
+                else:
+                    ri = RecipeIngredient(**ingredient, recipe_id=recipe.id)
+                    ri.full_clean()
+                    ri.save()
+    except ValidationError as e:
+        # TODO: change str(val) to something better
+        return 403, {key: str(val) for key, val in e.error_dict.items()}
 
     recipe.refresh_from_db()
     return recipe

@@ -1,16 +1,74 @@
+import base64
 import json
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import Q
 from django.forms import ValidationError
-from django.test import TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from ninja.responses import NinjaJSONEncoder
+from recipes.api import recipe_update
 from recipes.api_schemas import (
     FullRecipeDetailSchema,
     FullRecipeListSchema,
+    FullRecipeUpdateSchema,
     IngredientDetailSchema,
+    RecipeIngredientUpdateSchema,
 )
 from recipes.models import Ingredient, Recipe, RecipeIngredient
+
+from kokebok import settings
+
+
+class RecipeTests(TestCase):
+    # Use in-memory storage so test doesn't polute local file system
+    # TODO: Should likely be applied to all tests. Maybe using a custom test runner
+    # see
+    # * https://docs.djangoproject.com/en/4.1/topics/testing/tools/#overriding-settings
+    # * https://docs.djangoproject.com/en/4.2/topics/testing/advanced/
+    # * https://stackoverflow.com/questions/7447134/how-do-you-set-debug-to-true-when-running-a-django-test
+    # * https://stackoverflow.com/a/17066553
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+            "staticfiles": settings.static_files_storage,
+        }
+    )
+    def test_recipe_update_img_set_on_success(self):
+        # tiny gif source: https://stackoverflow.com/a/15960901
+        tiny_gif = "R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBAAA="  # base64
+        rec = Recipe.objects.create(title="old title", id=111)
+
+        rec.hero_image = SimpleUploadedFile("t2.gif", base64.b64decode(tiny_gif))
+        rec.save()
+
+        self.assertTrue(rec.hero_image)
+        self.assertTrue(rec.thumbnail)
+
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+            "staticfiles": settings.static_files_storage,
+        }
+    )
+    def test_recipe_update_img_removal(self):
+        # tiny gif source: https://stackoverflow.com/a/15960901
+        tiny_gif = "R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBAAA="  # base64
+        rec = Recipe.objects.create(
+            title="old title",
+            id=111,
+            hero_image=SimpleUploadedFile("t.gif", base64.b64decode(tiny_gif)),
+        )
+
+        rec.hero_image = None
+        rec.save()
+
+        # Make sure images set to None
+        self.assertFalse(rec.hero_image)
+        self.assertFalse(rec.thumbnail)
+
+        # Make sure previous images were actually deleted
+        # TODO: Figure out how to query media files
 
 
 class APITests(TestCase):
@@ -70,11 +128,13 @@ class APITests(TestCase):
         returned_recipe = json.loads(response.content)
         _recipe_override = {
             "hero_image": "",  # fix blank imagefield being turned into None
+            "thumbnail": "",  # ditto
             "recipe_ingredients": list(rec.recipe_ingredients.all()),
         }
         recipe_as_schema = FullRecipeDetailSchema(**rec.__dict__ | _recipe_override)
-        # TODO: Figure out why ninja is being so difficult about this
+        # TODO: Figure out why ninja is being so difficult the images
         recipe_as_schema.hero_image = None
+        recipe_as_schema.thumbnail = None
         expected_ingredient = self._as_api_response_data(recipe_as_schema)
         self.assertEqual(returned_recipe, expected_ingredient)
 
@@ -83,11 +143,13 @@ class APITests(TestCase):
         Ingredient.objects.create(id=123, name_en="ingredient")
 
         url = reverse("api-1.0.0:" + "recipe_add")
-        data = {
+        recipe_data = {
             "title": "test_title",
             "ingredients": [{"name_in_recipe": "ingr", "base_ingredient_id": 123}],
         }
-        response = self.client.post(url, data, content_type="application/json")
+        form = {"hero_image": "", "full_recipe": json.dumps(recipe_data)}
+        response = self.client.post(url, form)
+
         self.assertEqual(response.status_code, 200, msg=response.content)
 
         recipe_id = json.loads(response.content)["id"]
@@ -125,19 +187,18 @@ class APITests(TestCase):
             base_ingredient=ingr,
         )
 
+        url = reverse("api-1.0.0:recipe_update", args=[rec.id])
         # Define data to PUT
-        data = {
+        recipe_data = {
             "title": "new title",
-            "hero_image": "",
             "ingredients": [
                 {"id": 333, "name_in_recipe": "new name", "base_ingredient_id": 222},
                 {"name_in_recipe": "add me", "base_ingredient_id": 222},
             ],
         }
 
-        # Check response ok
-        url = reverse("api-1.0.0:recipe_update", args=[rec.id])
-        response = self.client.put(url, data, content_type="application/json")
+        # form = {"hero_image": "", "full_recipe": json.dumps(recipe_data)}
+        response = self.client.put(url, recipe_data, content_type="application/json")
         self.assertEqual(response.status_code, 200, msg=response.content)
 
         # Check that Recipe and RecipeIngredients were updated as expected
@@ -160,6 +221,81 @@ class APITests(TestCase):
         # Make sure we didn't create any objects
         self.assertEqual(Recipe.objects.count(), 1)
         self.assertEqual(RecipeIngredient.objects.count(), 2)
+
+    # TODO: FIX
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+            "staticfiles": settings.static_files_storage,
+        }
+    )
+    def test_recipe_update_no_img_replacement_on_err(self):
+        # TODO: Check that when the image update request fails,
+        # that the images in that request did not replace the existing images
+        tiny_gif = "R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBAAA="  # base64
+        rec = Recipe.objects.create(
+            title="old title",
+            id=111,
+            hero_image=SimpleUploadedFile("t2.gif", base64.b64decode(tiny_gif)),
+        )
+        # ingr = Ingredient.objects.create(name_en="iii", id=222)
+
+        # empty image, should lead to setting imgs to none if success
+        data = FullRecipeUpdateSchema(
+            title="new title",
+            # hero_image="",  # SimpleUploadedFile('t.gif', base64.b64decode(tiny_gif))
+            ingredients=[
+                RecipeIngredientUpdateSchema(
+                    name_in_recipe="new name",
+                    base_ingredient_id=0,  # err id
+                )
+            ],
+        )
+
+        url = reverse("api-1.0.0:recipe_update", args=[rec.id])
+        req = RequestFactory().put(url)
+        _ = recipe_update(req, rec.id, data)
+        # print(_)
+
+        # self.assertTrue(rec.hero_image)
+        # self.assertTrue(rec.thumbnail)
+
+    # TODO: FIX
+    @override_settings(
+        STORAGES={
+            "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+            "staticfiles": settings.static_files_storage,
+        }
+    )
+    def test_recipe_update_img_replaced_on_success(self):
+        # TODO: Check that when the image update request fails,
+        # that the images in that request did not replace the existing images
+        tiny_gif = "R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBAAA="  # base64
+        rec = Recipe.objects.create(
+            title="old title",
+            id=111,
+            hero_image=SimpleUploadedFile("t_old.gif", base64.b64decode(tiny_gif)),
+        )
+        ingr = Ingredient.objects.create(name_en="iii", id=222)
+
+        # empty image, should lead to setting imgs to none if success
+        data = FullRecipeUpdateSchema(
+            title="new title",
+            ingredients=[
+                RecipeIngredientUpdateSchema(
+                    name_in_recipe="new name",
+                    base_ingredient_id=ingr.id,  # err id
+                )
+            ],
+        )
+
+        url = reverse("api-1.0.0:recipe_update", args=[rec.id])
+        r = RequestFactory().put(url)
+        outcome = recipe_update(r, rec.id, data)
+        print(outcome)
+
+        # self.assertEqual(rec.hero_image.name, "t_new.gif")
+        # self.assertEqual(rec.thumbnail.name, "t_new.gif")
 
     def test_recipe_delete(self):
         # Setup test data

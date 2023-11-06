@@ -85,7 +85,7 @@ class FullRecipeListSchema(ModelSchema):
 
     class Config:
         model = Recipe
-        model_fields = ["title", "preamble", "hero_image", "created_at"]
+        model_fields = ["title", "id", "preamble", "hero_image", "created_at"]
 
 
 class FullRecipeDetailSchema(ModelSchema):
@@ -105,7 +105,7 @@ class FullRecipeCreationSchema(ModelSchema):
 
     class Config:
         model = Recipe
-        model_exclude = ["id", "created_at"]
+        model_exclude = ["id", "created_at", "hero_image", "thumbnail"]
 
 
 class FullRecipeUpdateSchema(ModelSchema):
@@ -114,4 +114,4 @@ class FullRecipeUpdateSchema(ModelSchema):
 
     class Config:
         model = Recipe
-        model_exclude = ["id", "created_at"]
+        model_exclude = ["id", "created_at", "hero_image", "thumbnail"]

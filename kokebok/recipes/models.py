@@ -1,7 +1,12 @@
+import io
+import sys
+
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.dispatch import receiver
 from django.forms import ValidationError
+from PIL import Image
 
 
 class Recipe(models.Model):
@@ -19,18 +24,22 @@ class Recipe(models.Model):
     title = models.CharField(max_length=200, blank=False)
     preamble = models.TextField(blank=True, default="")
     content = models.TextField(blank=True, default="")
-    hero_image = models.ImageField(blank=True, upload_to="recipes/hero_images")
     created_at = models.DateTimeField(auto_now_add=True)
     original_author = models.CharField(max_length=128, blank=True, default="")
     language = models.CharField(
         max_length=8, choices=Languages.choices, blank=True, default=""
     )
-
     total_time = models.IntegerField(
         null=True,
         blank=True,
         validators=[MinValueValidator(0)],
+        default=None,
     )
+
+    # Image fields.
+    hero_image = models.ImageField(blank=True, upload_to="recipes/hero_images")
+    thumbnail = models.ImageField(blank=True, upload_to="recipes/thumbnails")
+    _replaced_image_fields: list[models.ImageField] = []  # Used for deleting old imgs
 
     # Recipe yields consists of two parts:
     # the number of items/servings, and the name of the item.
@@ -61,6 +70,63 @@ def recipe_delete_handler(instance: Recipe, *args, **kwargs):
     """Deletes images associated with a recipe when a recipe is deleted"""
     if instance.hero_image:
         instance.hero_image.delete(save=False)
+    if instance.thumbnail:
+        instance.thumbnail.delete(save=False)
+
+
+@receiver(models.signals.pre_save, sender=Recipe)
+def recipe_thumbnail_updater(sender: type[Recipe], instance: Recipe, **kwargs):
+    """Generates the thumbnail of recipe hero image on hero image addition/change"""
+    # Thanks to https://stackoverflow.com/a/7934958 for idea of using pre_save signal
+
+    def make_thumbnail(image_field: models.ImageField):
+        # Thanks to https://stackoverflow.com/a/12309950 for implementation
+        thumb_img = Image.open(image_field)
+        thumb_img.thumbnail((512, 512))  # TODO: Figure out good thumbnail size
+        thumb_data = io.BytesIO()
+        # Use same format for thumbnail as for image
+        thumb_img.save(thumb_data, thumb_img.format)
+        thumb_file = InMemoryUploadedFile(
+            file=thumb_data,
+            field_name=None,
+            name=image_field.name,
+            content_type=Image.MIME[thumb_img.format],
+            size=sys.getsizeof(thumb_data),
+            charset=None,
+        )
+        return thumb_file
+
+    try:
+        existing = sender.objects.get(id=instance.id)
+    except sender.DoesNotExist:
+        # Instance is being created, so generate thumbnail
+        if instance.hero_image:
+            instance.thumbnail = make_thumbnail(instance.hero_image)
+    else:
+        # Instance hero image has changed
+        if not existing.hero_image == instance.hero_image:
+            if not instance.hero_image:  # hero image is being removed
+                instance.thumbnail = instance.hero_image
+            else:
+                instance.thumbnail = make_thumbnail(instance.hero_image)
+            instance._replaced_image_fields = [existing.hero_image, existing.thumbnail]
+
+
+# TODO: see if this can be done in the delete method using transaction.on_commit
+# see: https://forum.djangoproject.com/t/pointers-and-tips-for-testing-imagefield-and-filefield-incl-deletion/11949/4
+@receiver(models.signals.post_save, sender=Recipe)
+def delete_replaced_images(sender: type[Recipe], instance: Recipe, **kwargs):
+    """Deletes the recipe images recorded as having been replaced"""
+
+    def do_delete():
+        for img_field in instance._replaced_image_fields:
+            print(img_field)
+            img_field.delete(save=False)
+        instance._replaced_image_fields = []  # just to be safe
+
+    # Only perform the delete after the current transaction has committed (https://stackoverflow.com/a/52703242)
+    transaction.on_commit(do_delete)
+    # do_delete()
 
 
 class Ingredient(models.Model):
@@ -141,9 +207,6 @@ class RecipeIngredient(models.Model):
         choices=Units.choices,
         default=Units.BLANK,
     )
-
-    def clean(self):
-        return super().clean()
 
     def __repr__(self) -> str:
         return f"<{self.recipe.title}: {self.name_in_recipe}>"
