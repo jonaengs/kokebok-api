@@ -142,7 +142,7 @@ class APITests(TestCase):
         # Create base ingredient for RecipeIngredient to refer to
         Ingredient.objects.create(id=123, name_en="ingredient")
 
-        url = reverse("api-1.0.0:" + "recipe_add")
+        url = reverse("api-1.0.0:recipe_add")
         recipe_data = {
             "title": "test_title",
             "ingredients": [{"name_in_recipe": "ingr", "base_ingredient_id": 123}],
@@ -197,8 +197,8 @@ class APITests(TestCase):
             ],
         }
 
-        # form = {"hero_image": "", "full_recipe": json.dumps(recipe_data)}
-        response = self.client.put(url, recipe_data, content_type="application/json")
+        form = {"hero_image": "", "full_recipe": json.dumps(recipe_data)}
+        response = self.client.post(url, data=form)
         self.assertEqual(response.status_code, 200, msg=response.content)
 
         # Check that Recipe and RecipeIngredients were updated as expected
@@ -222,7 +222,6 @@ class APITests(TestCase):
         self.assertEqual(Recipe.objects.count(), 1)
         self.assertEqual(RecipeIngredient.objects.count(), 2)
 
-    # TODO: FIX
     @override_settings(
         STORAGES={
             "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
@@ -230,20 +229,15 @@ class APITests(TestCase):
         }
     )
     def test_recipe_update_no_img_replacement_on_err(self):
-        # TODO: Check that when the image update request fails,
-        # that the images in that request did not replace the existing images
         tiny_gif = "R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBAAA="  # base64
         rec = Recipe.objects.create(
             title="old title",
             id=111,
-            hero_image=SimpleUploadedFile("t2.gif", base64.b64decode(tiny_gif)),
+            hero_image=SimpleUploadedFile("t_old.gif", base64.b64decode(tiny_gif)),
         )
-        # ingr = Ingredient.objects.create(name_en="iii", id=222)
 
-        # empty image, should lead to setting imgs to none if success
         data = FullRecipeUpdateSchema(
             title="new title",
-            # hero_image="",  # SimpleUploadedFile('t.gif', base64.b64decode(tiny_gif))
             ingredients=[
                 RecipeIngredientUpdateSchema(
                     name_in_recipe="new name",
@@ -251,16 +245,21 @@ class APITests(TestCase):
                 )
             ],
         )
+        hero_image = SimpleUploadedFile("t_new.gif", base64.b64decode(tiny_gif))
 
         url = reverse("api-1.0.0:recipe_update", args=[rec.id])
         req = RequestFactory().put(url)
-        _ = recipe_update(req, rec.id, data)
-        # print(_)
+        # Ensure on_commit callback is executed before continuing
+        with self.captureOnCommitCallbacks(execute=True) as _:  # Don't need callbacks
+            _ = recipe_update(req, rec.id, full_recipe=data, hero_image=hero_image)
 
-        # self.assertTrue(rec.hero_image)
-        # self.assertTrue(rec.thumbnail)
+        rec.refresh_from_db()
+        self.assertEqual(rec.hero_image.name, "recipes/hero_images/t_old.gif")
+        self.assertEqual(rec.thumbnail.name, "recipes/thumbnails/t_old.gif")
+        # Make sure no errors are raised after refresh
+        rec.hero_image.open()
+        rec.thumbnail.open()
 
-    # TODO: FIX
     @override_settings(
         STORAGES={
             "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
@@ -268,8 +267,6 @@ class APITests(TestCase):
         }
     )
     def test_recipe_update_img_replaced_on_success(self):
-        # TODO: Check that when the image update request fails,
-        # that the images in that request did not replace the existing images
         tiny_gif = "R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBAAA="  # base64
         rec = Recipe.objects.create(
             title="old title",
@@ -278,24 +275,32 @@ class APITests(TestCase):
         )
         ingr = Ingredient.objects.create(name_en="iii", id=222)
 
-        # empty image, should lead to setting imgs to none if success
         data = FullRecipeUpdateSchema(
             title="new title",
             ingredients=[
                 RecipeIngredientUpdateSchema(
                     name_in_recipe="new name",
-                    base_ingredient_id=ingr.id,  # err id
+                    base_ingredient_id=ingr.id,
                 )
             ],
         )
+        hero_image = SimpleUploadedFile("t_new.gif", base64.b64decode(tiny_gif))
 
         url = reverse("api-1.0.0:recipe_update", args=[rec.id])
-        r = RequestFactory().put(url)
-        outcome = recipe_update(r, rec.id, data)
-        print(outcome)
+        req = RequestFactory().put(url)
+        # Ensure on_commit callback is executed before continuing
+        with self.captureOnCommitCallbacks(execute=True) as _:
+            _ = recipe_update(req, rec.id, full_recipe=data, hero_image=hero_image)
 
-        # self.assertEqual(rec.hero_image.name, "t_new.gif")
-        # self.assertEqual(rec.thumbnail.name, "t_new.gif")
+        with self.assertRaises(FileNotFoundError):
+            rec.hero_image.open()
+            rec.thumbnail.open()
+        rec.refresh_from_db()
+        self.assertEqual(rec.hero_image.name, "recipes/hero_images/t_new.gif")
+        self.assertEqual(rec.thumbnail.name, "recipes/thumbnails/t_new.gif")
+        # Make sure no errors are raised after refresh
+        rec.hero_image.open()
+        rec.thumbnail.open()
 
     def test_recipe_delete(self):
         # Setup test data

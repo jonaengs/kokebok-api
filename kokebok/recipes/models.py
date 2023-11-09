@@ -89,7 +89,7 @@ def recipe_thumbnail_updater(sender: type[Recipe], instance: Recipe, **kwargs):
         thumb_file = InMemoryUploadedFile(
             file=thumb_data,
             field_name=None,
-            name=image_field.name,
+            name=image_field.name.split("/")[-1],
             content_type=Image.MIME[thumb_img.format],
             size=sys.getsizeof(thumb_data),
             charset=None,
@@ -106,7 +106,7 @@ def recipe_thumbnail_updater(sender: type[Recipe], instance: Recipe, **kwargs):
         # Instance hero image has changed
         if not existing.hero_image == instance.hero_image:
             if not instance.hero_image:  # hero image is being removed
-                instance.thumbnail = instance.hero_image
+                instance.thumbnail = instance.hero_image  # set blank
             else:
                 instance.thumbnail = make_thumbnail(instance.hero_image)
             instance._replaced_image_fields = [existing.hero_image, existing.thumbnail]
@@ -120,13 +120,11 @@ def delete_replaced_images(sender: type[Recipe], instance: Recipe, **kwargs):
 
     def do_delete():
         for img_field in instance._replaced_image_fields:
-            print(img_field)
             img_field.delete(save=False)
         instance._replaced_image_fields = []  # just to be safe
 
     # Only perform the delete after the current transaction has committed (https://stackoverflow.com/a/52703242)
     transaction.on_commit(do_delete)
-    # do_delete()
 
 
 class Ingredient(models.Model):

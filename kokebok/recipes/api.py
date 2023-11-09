@@ -5,7 +5,7 @@ import ninja
 from django.db import transaction
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import File, Router
 from ninja.files import UploadedFile
 from ninja.security import django_auth
 from recipes.api_schemas import (
@@ -31,7 +31,9 @@ router = Router(
 
 @router.post("recipes")
 def recipe_add(
-    request, full_recipe: FullRecipeCreationSchema, hero_image: UploadedFile = None
+    request,
+    full_recipe: FullRecipeCreationSchema,
+    hero_image: UploadedFile | None = File(None),
 ):
     recipe_data = full_recipe.dict()
     ingredients = recipe_data.pop("ingredients")
@@ -87,8 +89,14 @@ def recipe_detail(request, recipe_id: int):
     return recipe
 
 
-@router.put("recipe/{recipe_id}", response={200: FullRecipeDetailSchema, 403: dict})
-def recipe_update(request, recipe_id: int, full_recipe: FullRecipeUpdateSchema):
+# POST because Django does not allow files in PUT requests (nor PATCH requests)
+@router.post("recipe/{recipe_id}", response={200: FullRecipeDetailSchema, 403: dict})
+def recipe_update(
+    request,
+    recipe_id: int,
+    full_recipe: FullRecipeUpdateSchema,
+    hero_image: UploadedFile | None = File(None),
+):
     """
     Returns the update recipe and recipe ingredients
 
@@ -115,7 +123,11 @@ def recipe_update(request, recipe_id: int, full_recipe: FullRecipeUpdateSchema):
     # If this is slow, try deleting all ris and then creating all in the request instead
     try:
         with transaction.atomic(durable=True):
-            recipe_qs.update(**recipe_data)
+            # TODO: Find better way to update recipe
+            for k, v in recipe_data.items():
+                setattr(recipe, k, v)
+            recipe.hero_image = hero_image
+            recipe.save()
 
             # Delete ingredients missing from the request
             # Has to be performed before creation due to lazy django querying weirdness
