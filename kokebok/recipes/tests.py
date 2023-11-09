@@ -39,11 +39,19 @@ class RecipeTests(TestCase):
         tiny_gif = "R0lGODlhAQABAAAAACH5BAEAAAAALAAAAAABAAEAAAIBAAA="  # base64
         rec = Recipe.objects.create(title="old title", id=111)
 
+        # Assert that images don't currently exist
+        with self.assertRaises((FileNotFoundError, ValueError)):
+            rec.hero_image.open()
+            rec.thumbnail.open()
+
         rec.hero_image = SimpleUploadedFile("t2.gif", base64.b64decode(tiny_gif))
         rec.save()
 
         self.assertTrue(rec.hero_image)
         self.assertTrue(rec.thumbnail)
+        # Check that images do exist
+        rec.hero_image.open()
+        rec.thumbnail.open()
 
     @override_settings(
         STORAGES={
@@ -60,6 +68,10 @@ class RecipeTests(TestCase):
             hero_image=SimpleUploadedFile("t.gif", base64.b64decode(tiny_gif)),
         )
 
+        # Check that images do exist before update
+        rec.hero_image.open()
+        rec.thumbnail.open()
+
         rec.hero_image = None
         rec.save()
 
@@ -67,8 +79,9 @@ class RecipeTests(TestCase):
         self.assertFalse(rec.hero_image)
         self.assertFalse(rec.thumbnail)
 
-        # Make sure previous images were actually deleted
-        # TODO: Figure out how to query media files
+        with self.assertRaises((FileNotFoundError, ValueError)):
+            rec.hero_image.open()
+            rec.thumbnail.open()
 
 
 class APITests(TestCase):
