@@ -42,12 +42,16 @@ class IngredientUpdateSchema(ModelSchema):
 
 
 class RecipeIngredientListSchema(ModelSchema):
+    base_ingredient_id: int = Field(alias="base_ingredient")
+
     class Config:
         model = RecipeIngredient
         model_fields = ["name_in_recipe", "base_ingredient", "is_optional"]
 
 
 class RecipeIngredientDetailSchema(ModelSchema):
+    base_ingredient_id: int = Field(alias="base_ingredient")
+
     class Config:
         model = RecipeIngredient
         model_fields = "__all__"
@@ -85,7 +89,7 @@ class FullRecipeListSchema(ModelSchema):
 
     class Config:
         model = Recipe
-        model_fields = ["title", "id", "preamble", "hero_image", "created_at"]
+        model_fields = ["id", "title", "preamble", "thumbnail", "created_at", "total_time"]
 
 
 class FullRecipeDetailSchema(ModelSchema):
