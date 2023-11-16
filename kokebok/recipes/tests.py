@@ -109,7 +109,7 @@ class APITests(TestCase):
         returned_recipe = returned_data[0]
         # Turning recipe into schema requires a little bit of work
         _recipe_override = {
-            "hero_image": "",  # fix blank imagefield being turned into None
+            "thumbnail": "",  # fix blank imagefield being turned into None
             "recipe_ingredients": list(rec.recipe_ingredients.all()),
         }
         recipe_as_schema = FullRecipeListSchema(**rec.__dict__ | _recipe_override)
