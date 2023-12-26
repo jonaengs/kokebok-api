@@ -23,7 +23,8 @@ class Recipe(models.Model):
 
     title = models.CharField(max_length=200, blank=False)
     preamble = models.TextField(blank=True, default="")
-    content = models.TextField(blank=True, default="")
+    instructions = models.TextField(blank=True, default="")
+    rest_text = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     original_author = models.CharField(max_length=128, blank=True, default="")
     language = models.CharField(

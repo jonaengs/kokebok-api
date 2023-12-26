@@ -147,9 +147,7 @@ def text_to_recipe(text: str, user_hint: str = "") -> str:
         response["usage"]["prompt_tokens"] * GPT_PRICING[gpt_model]["input"] / 1000
     )
     output_cost = (
-        response["usage"]["completion_tokens"]
-        * GPT_PRICING[gpt_model]["output"]
-        / 1000
+        response["usage"]["completion_tokens"] * GPT_PRICING[gpt_model]["output"] / 1000
     )
     total_cost = input_cost + output_cost
     print("COSTS:")

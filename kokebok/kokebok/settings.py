@@ -203,9 +203,7 @@ STORAGES = {
 
 # CSP (Content Security Policy) Settings
 # About the safety of "data:": https://security.stackexchange.com/q/94993
-CSP_IMG_SRC = ("'self'", "data:") + (
-    (AWS_S3_CUSTOM_DOMAIN,) if not DEBUG else tuple()
-)
+CSP_IMG_SRC = ("'self'", "data:") + ((AWS_S3_CUSTOM_DOMAIN,) if not DEBUG else tuple())
 CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
 CSP_SCRIPT_SRC = "'self'"
 CSP_CONNECT_SRC = "'self'"
@@ -215,9 +213,10 @@ CSP_REPORT_ONLY = False
 CSP_REPORT_URI = False
 
 
+USE_OLD_IMG_PARSING = False  # Enable pre-"gpt-4-vision" image parsing pipeline
 # OCR (likely Google Cloud) provider
 OCR_ENABLED = env("OCR_ENABLED")
-OCR_PROVIDER: Literal["Google", "Amazon"] = "Google"
+OCR_PROVIDER: Literal["Google", "Amazon", "OpenAI"] = "OpenAI"
 if OCR_ENABLED:
     if OCR_PROVIDER == "Google":
         GOOGLE_CLOUD_CREDENTIALS = {

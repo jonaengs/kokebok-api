@@ -61,9 +61,7 @@ def alternate_google_cloud_ocr(raw_img: bytes, hints: dict[str, str]) -> str:
     # Note: uses document_text_detection instead of text_detection
     # This gives access to more info about text groupings,
     # and possibly gives better OCR results in general?
-    response = client.document_text_detection(
-        image=image, image_context=image_context
-    )
+    response = client.document_text_detection(image=image, image_context=image_context)
     texts = response.text_annotations
 
     full_text = response.full_text_annotation

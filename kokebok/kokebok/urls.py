@@ -15,9 +15,7 @@ def require_logged_in(view_func):
     def _view_wrapper(request: HttpRequest, *args, **kwargs):
         # TODO: Maybe require is_staff as well?
         if not request.user.is_authenticated:
-            return api.create_response(
-                request, {"detail": "Unauthorized"}, status=401
-            )
+            return api.create_response(request, {"detail": "Unauthorized"}, status=401)
         return view_func(request, *args, **kwargs)
 
     return _view_wrapper
