@@ -16,6 +16,7 @@ from recipes.api_schemas import (
     IngredientCreationSchema,
     IngredientDetailSchema,
     IngredientUpdateSchema,
+    RecipeIngredientListSchema,
 )
 from recipes.image_parsing import parse_img
 from recipes.models import Ingredient, Recipe, RecipeIngredient
@@ -72,11 +73,10 @@ def recipe_list(request):
     rec_ingrs = RecipeIngredient.objects.select_related("recipe").order_by("recipe")
     recipes = []
     for _, group in groupby(rec_ingrs, key=lambda ri: ri.recipe.id):
-        elements = list(group)
+        recipe_ingredients = list(group)
+        recipe = recipe_ingredients[0].recipe
         recipes.append(
-            FullRecipeListSchema(
-                **elements[0].recipe.__dict__, recipe_ingredients=elements
-            )
+            recipe.__dict__ | {"recipe_ingredients": recipe_ingredients} 
         )
 
     return recipes
