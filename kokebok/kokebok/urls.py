@@ -1,13 +1,12 @@
 from functools import wraps
 
+from core.auth_api import router as auth_router
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpRequest
 from django.urls import path
 from ninja import NinjaAPI
-
-from core.auth_api import router as auth_router
 from recipes.api import router as recipes_router
 
 
@@ -24,7 +23,9 @@ def require_logged_in(view_func):
 
 api = NinjaAPI(
     # Require login to view api docs in production
-    docs_decorator=(lambda x: x) if settings.DEBUG else require_logged_in,
+    docs_decorator=(lambda x: x)
+    if settings.DEBUG
+    else require_logged_in,
 )
 api.add_router("recipes/", recipes_router)
 api.add_router("auth/", auth_router)
