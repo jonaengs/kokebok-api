@@ -61,7 +61,7 @@ def recipe_add(
 
 
 @router.get("recipes", response=list[FullRecipeListSchema])
-def recipe_list(_request):
+def recipe_list(request):
     """
     Returns all recipes along with all the recipe ingredients that each contains.
 
@@ -95,7 +95,7 @@ def recipe_update(
     request,
     recipe_id: int,
     full_recipe: FullRecipeUpdateSchema,
-    hero_image: UploadedFile | None = File(None),
+    hero_image: UploadedFile | None,
 ):
     """
     Returns the update recipe and recipe ingredients
@@ -154,7 +154,7 @@ def recipe_update(
 
 
 @router.delete("recipe/{recipe_id}", response=FullRecipeDetailSchema)
-def recipe_delete(_request, recipe_id: int):
+def recipe_delete(request, recipe_id: int):
     recipe = get_object_or_404(Recipe, id=recipe_id)
     # We rely on the delete=cascade setting deleting recipe ingredients here
     recipe.delete()
@@ -163,19 +163,19 @@ def recipe_delete(_request, recipe_id: int):
 
 
 @router.get("ingredients", response=list[IngredientDetailSchema])
-def ingredient_list(_request):
+def ingredient_list(request):
     return Ingredient.objects.all()
 
 
 @router.post("ingredients", response=IngredientDetailSchema)
-def ingredient_add(_request, ingredient: IngredientCreationSchema):
+def ingredient_add(request, ingredient: IngredientCreationSchema):
     ingredient = Ingredient.objects.create(**ingredient.dict())
     return ingredient
 
 
 @router.put("ingredients/{ingredient_id}", response=IngredientDetailSchema)
 def ingredient_update(
-    _request, ingredient_id: int, ingredient_data: IngredientUpdateSchema
+    request, ingredient_id: int, ingredient_data: IngredientUpdateSchema
 ):
     ingredient_qs = Ingredient.objects.filter(id=ingredient_id)
     ingredient = get_object_or_404(ingredient_qs, id=ingredient_id)
@@ -185,7 +185,7 @@ def ingredient_update(
 
 
 @router.delete("ingredients/{ingredient_id}", response=IngredientDetailSchema)
-def ingredient_delete(_request, ingredient_id: int):
+def ingredient_delete(request, ingredient_id: int):
     ingredient = get_object_or_404(Ingredient, id=ingredient_id)
     ingredient.delete()
     ingredient.id = ingredient_id  # id is set to None on deletion
@@ -198,7 +198,7 @@ def ingredient_delete(_request, ingredient_id: int):
 
 
 @router.get("scrape", response={200: ScrapedRecipe, 400: str}, tags=["scrape"])
-def scrape_recipe(_request, url: str):
+def scrape_recipe(request, url: str):
     existing = Recipe.objects.filter(origin_url=url).exists()
     if existing:
         return 403, "Recipe with given url already exists."
@@ -215,7 +215,7 @@ def scrape_recipe(_request, url: str):
 @router.post(
     "from_image", response={200: ScrapedRecipe, 400: str, 404: str}, tags=["scrape"]
 )
-def img_upload(request, img: ninja.files.UploadedFile):
+def img_upload(request, img: UploadedFile):
     if not settings.OCR_ENABLED:
         return 404, "OCR/Text-recognition service not enabled for this system"
 

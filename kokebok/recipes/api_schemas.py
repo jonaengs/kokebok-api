@@ -15,9 +15,9 @@ class IngredientDetailSchema(ModelSchema):
     # TODO: Remove names and resolver. They're mostly here as a PoC
     names: list[str | None]
 
-    class Config:
+    class Meta:
         model = Ingredient
-        model_fields = "__all__"
+        fields = "__all__"
 
     @staticmethod
     def resolve_names(obj):
@@ -25,15 +25,15 @@ class IngredientDetailSchema(ModelSchema):
 
 
 class IngredientCreationSchema(ModelSchema):
-    class Config:
+    class Meta:
         model = Ingredient
-        model_exclude = ["id"]
+        exclude = ["id"]
 
 
 class IngredientUpdateSchema(ModelSchema):
-    class Config:
+    class Meta:
         model = Ingredient
-        model_exclude = ["id"]
+        exclude = ["id"]
 
 
 ##########################
@@ -44,34 +44,34 @@ class IngredientUpdateSchema(ModelSchema):
 class RecipeIngredientListSchema(ModelSchema):
     base_ingredient_id: int = Field(alias="base_ingredient.id")
 
-    class Config:
+    class Meta:
         model = RecipeIngredient
-        model_fields = ["name_in_recipe", "is_optional"]
+        fields = ["name_in_recipe", "is_optional"]
 
 
 class RecipeIngredientDetailSchema(ModelSchema):
     base_ingredient_id: int = Field(alias="base_ingredient.id")
 
-    class Config:
+    class Meta:
         model = RecipeIngredient
-        model_exclude = ["base_ingredient"]
+        exclude = ["base_ingredient"]
 
 
 class RecipeIngredientCreationSchema(ModelSchema):
     base_ingredient_id: int
 
-    class Config:
+    class Meta:
         model = RecipeIngredient
-        model_exclude = ["id", "recipe", "base_ingredient"]
+        exclude = ["id", "recipe", "base_ingredient"]
 
 
 class RecipeIngredientUpdateSchema(ModelSchema):
     base_ingredient_id: int
     id: int | None = None  # Optional when used with RecipeUpdateSchema
 
-    class Config:
+    class Meta:
         model = RecipeIngredient
-        model_exclude = ["id", "recipe", "base_ingredient"]
+        exclude = ["id", "recipe", "base_ingredient"]
 
 
 ################
@@ -87,9 +87,9 @@ class FullRecipeListSchema(ModelSchema):
 
     ingredients: list[RecipeIngredientListSchema] = Field(alias="recipe_ingredients")
 
-    class Config:
+    class Meta:
         model = Recipe
-        model_fields = [
+        fields = [
             "id",
             "title",
             "preamble",
@@ -104,9 +104,9 @@ class FullRecipeDetailSchema(ModelSchema):
 
     ingredients: list[RecipeIngredientDetailSchema] = Field(alias="recipe_ingredients")
 
-    class Config:
+    class Meta:
         model = Recipe
-        model_fields = "__all__"
+        fields = "__all__"
 
 
 class FullRecipeCreationSchema(ModelSchema):
@@ -114,15 +114,15 @@ class FullRecipeCreationSchema(ModelSchema):
 
     ingredients: list[RecipeIngredientCreationSchema]
 
-    class Config:
+    class Meta:
         model = Recipe
-        model_exclude = ["id", "created_at", "hero_image", "thumbnail"]
+        exclude = ["id", "created_at", "hero_image", "thumbnail"]
 
 
 class FullRecipeUpdateSchema(ModelSchema):
     ingredients: list[RecipeIngredientUpdateSchema]
     """Update schema for recipe and recipe ingredients"""
 
-    class Config:
+    class Meta:
         model = Recipe
-        model_exclude = ["id", "created_at", "hero_image", "thumbnail"]
+        exclude = ["id", "created_at", "hero_image", "thumbnail"]

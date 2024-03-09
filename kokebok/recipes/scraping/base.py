@@ -36,9 +36,9 @@ UNIT_STRINGS: dict[str, str] = functools.reduce(
 class ScrapedRecipeIngredient(ModelSchema):
     base_ingredient_str: str = ""
 
-    class Config:
+    class Meta:
         model = RecipeIngredient
-        model_exclude = ["base_ingredient", "recipe"]
+        exclude = ["base_ingredient", "recipe"]
 
     def clean(self):
         ...
@@ -51,9 +51,9 @@ class ScrapedRecipe(ModelSchema):
     hero_image_link: str | None = None
     ingredients: IngredientGroupDict
 
-    class Config:
+    class Meta:
         model = Recipe
-        model_exclude = [
+        exclude = [
             "id",
             "hero_image",
             "created_at",
