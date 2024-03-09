@@ -18,17 +18,17 @@ _recipes = [
     Recipe(
         id=1001,
         title="Fischsuppe",
-        content="<h1>Die beste Fischsuppe der Welt!</h1>\n<p>\nSo schaffst du es: ...\n\n</p>",  # noqa
+        instructions="<h1>Die beste Fischsuppe der Welt!</h1>\n<p>\nSo schaffst du es: ...\n\n</p>",  # noqa
     ),
     Recipe(
         id=1002,
         title="Salzwasser",
-        content="Geben Sie das Salz ins Wasser. Das ist alles. Du bist fertig!",  # noqa
+        instructions="Geben Sie das Salz ins Wasser. Das ist alles. Du bist fertig!",  # noqa
     ),
     Recipe(
         id=1003,
         title="Pannekaker",
-        content="Visp sammen egg, salt og melk. Tilsett mel og visp sammen til en klumpfri røre. La røra svelle ca 1/2 time. Rør den opp fra bunnen. Stek pannekaker. Server pannekaker med syltetøy eller sukker.",  # noqa
+        instructions="Visp sammen egg, salt og melk. Tilsett mel og visp sammen til en klumpfri røre. La røra svelle ca 1/2 time. Rør den opp fra bunnen. Stek pannekaker. Server pannekaker med syltetøy eller sukker.",  # noqa
     ),
 ]
 
