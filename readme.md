@@ -10,8 +10,8 @@
 3. Run `poetry install` to setup a virtual environment and install dependencies
    * Note: Linters and language servers may expect the virtual environment to be located within the project directory. If you experience this issue, one solution is to run `poetry config virtualenvs.in-project true --local` before installing to have the virtual environment be installed in the project directory.
 4. Activate the virtual environment either by running `poetry shell` or activating it manually
-5. (First time only) set the `ENV_FILE` environment variable to `.env.dist` (using the `set` command on Windows and the `export` command on UNIX systems)
-6. In the top-level 'kokebok' directory, run `python manage.py migrate` (first time only) and then run `python manage.py runserver`
+5. (First time only) copy the `.example.env.dev` file into a file called `.env.dev`. This is the file you will use to configure your local setup.
+6. In the top-level directory, run `DEBUG=true python kokebok/manage.py migrate` (first time only) and then run `DEBUG=true python kokebok/manage.py runserver`
 
 ### Running with Docker (with Postgres)
 0. Make sure docker and docker-compose are installed

@@ -9,7 +9,8 @@ from django.core.management.utils import get_random_secret_key
 env = environ.Env(
     #
     DEBUG=(bool, False),
-    ENV_FILE=(str, ".env"),  # Defauly to prod settings file
+    PROD_ENV_FILE=(str, ".env"),
+    LOCAL_ENV_FILE=(str, ".env.dev"),
     STRICT_SSL=(bool, True),
     ALLOWED_HOSTS=(list, []),
     TRUSTED_ORIGINS=(list, []),
@@ -19,10 +20,12 @@ env = environ.Env(
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Read .env file. "Live" env variables have precedence over .env file contents
-env.read_env(BASE_DIR / env("ENV_FILE"))
-
 DEBUG = env("DEBUG")
+
+# Read .env file. "Live" env variables have precedence over .env file contents
+env_file = env("LOCAL_ENV_FILE") if DEBUG else env("PROD_ENV_FILE")
+env.read_env(BASE_DIR / env_file)
+
 STRICT_SSL = env("STRICT_SSL")
 if STRICT_SSL:
     assert not DEBUG, "Don't enable strict SSL measures in debug mode"
