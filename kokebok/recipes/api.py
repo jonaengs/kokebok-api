@@ -5,7 +5,7 @@ import ninja
 from django.db import transaction
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
-from ninja import File, Router
+from ninja import File, Form, Router
 from ninja.files import UploadedFile
 from ninja.security import django_auth
 from recipes.api_schemas import (
@@ -94,11 +94,11 @@ def recipe_detail(request, recipe_id: int):
 def recipe_update(
     request,
     recipe_id: int,
-    full_recipe: FullRecipeUpdateSchema,
-    hero_image: UploadedFile | None,
+    full_recipe: Form[FullRecipeUpdateSchema],
+    hero_image: File[UploadedFile],
 ):
     """
-    Returns the update recipe and recipe ingredients
+    Returns the updated recipe and recipe ingredients
 
     Note the following logic for the ingredients (RecipeIngredient)
         * argument ingredients with ids are located and updated

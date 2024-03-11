@@ -4,6 +4,7 @@ import sys
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
+from django.db.models import Q
 from django.dispatch import receiver
 from django.forms import ValidationError
 from PIL import Image
@@ -22,13 +23,13 @@ class Recipe(models.Model):
             return [ch[0] for ch in cls.choices]
 
     title = models.CharField(max_length=200, blank=False)
-    preamble = models.TextField(blank=True, default="")
-    instructions = models.TextField(blank=True, default="")
-    rest_text = models.TextField(blank=True, default="")
+    preamble = models.TextField(blank=True, null=True, default=None)
+    instructions = models.TextField(blank=True, null=True, default=None)
+    rest_text = models.TextField(blank=True, null=True, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
-    original_author = models.CharField(max_length=128, blank=True, default="")
+    original_author = models.CharField(max_length=128, blank=True, null=True, default=None)
     language = models.CharField(
-        max_length=8, choices=Languages.choices, blank=True, default=""
+        max_length=8, choices=Languages.choices, blank=True, default=None, null=True
     )
     total_time = models.IntegerField(
         null=True,
@@ -58,6 +59,15 @@ class Recipe(models.Model):
     origin_url = models.URLField(blank=True, null=True, unique=True)
     # For specifying any other sources: books, people, ...
     other_source = models.CharField(max_length=256, blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(check=~Q(title__exact=""), name="title not empty"),
+            models.CheckConstraint(check=~Q(preamble__exact=""), name="preamble not empty"),
+            models.CheckConstraint(check=~Q(instructions__exact=""), name="instructions not empty"),
+            models.CheckConstraint(check=~Q(rest_text__exact=""), name="rest_text not empty"),
+            models.CheckConstraint(check=~Q(original_author__exact=""), name="original_author not empty"),
+        ]
 
     def __repr__(self) -> str:
         return f"<Recipe: {self.title}>"
@@ -190,11 +200,11 @@ class RecipeIngredient(models.Model):
         related_name="recipe_ingredients",
         blank=True,  # In case the base ingredient hasn't been added yet
     )
-    name_in_recipe = models.CharField(max_length=128)
+    name_in_recipe = models.CharField(max_length=128, blank=False)
     is_optional = models.BooleanField(default=False)
 
     # Name of the sub-recipe the ingredient is part of
-    group_name = models.CharField(max_length=128, blank=True, default="")
+    group_name = models.CharField(max_length=128, blank=True, null=True, default=None)
 
     # The amount to use when making the base recipe
     base_amount = models.FloatField(
@@ -206,6 +216,11 @@ class RecipeIngredient(models.Model):
         choices=Units.choices,
         default=Units.BLANK,
     )
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(check=~Q(group_name__exact=""), name="group_name not empty")
+        ]
 
     def __repr__(self) -> str:
         return f"<{self.recipe.title}: {self.name_in_recipe}>"

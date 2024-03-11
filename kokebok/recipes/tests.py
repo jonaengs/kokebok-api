@@ -211,7 +211,7 @@ class APITests(TestCase):
         }
 
         form = {"hero_image": "", "full_recipe": json.dumps(recipe_data)}
-        response = self.client.post(url, data=form)
+        response = self.client.post(url, data=form, content_type="multipart/form-data")
         self.assertEqual(response.status_code, 200, msg=response.content)
 
         # Check that Recipe and RecipeIngredients were updated as expected
