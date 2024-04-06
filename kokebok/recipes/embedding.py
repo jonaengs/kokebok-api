@@ -29,6 +29,5 @@ def embed_cohere(texts: Iterable[str]):
 
 
 def embed(*opt_texts: str | None) -> list[list[float]]:
-    assert False
     texts = [t for t in opt_texts if t]
-    return embed_cohere(*texts)
+    return embed_cohere(texts)

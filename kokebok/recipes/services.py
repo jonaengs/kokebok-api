@@ -55,7 +55,7 @@ def create_recipe(data: FullRecipeCreationSchema, hero_image: File[UploadedFile]
     return recipe
 
 
-def update_recipe(recipe: Recipe, data: FullRecipeUpdateSchema, hero_image: File[UploadedFile]) -> Recipe | HttpError:
+def update_recipe(recipe: Recipe, data: FullRecipeUpdateSchema, hero_image: File[UploadedFile] | None) -> Recipe | HttpError:
     """
     Returns the updated recipe and recipe ingredients
 
