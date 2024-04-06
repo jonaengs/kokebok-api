@@ -7,6 +7,7 @@ from django.db import models, transaction
 from django.db.models import Q
 from django.dispatch import receiver
 from django.forms import ValidationError
+from pgvector.django import IvfflatIndex, VectorField
 from PIL import Image
 
 
@@ -27,7 +28,6 @@ class Recipe(models.Model):
     instructions = models.TextField(blank=True, null=True, default=None)
     rest_text = models.TextField(blank=True, null=True, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
-    original_author = models.CharField(max_length=128, blank=True, null=True, default=None)
     language = models.CharField(
         max_length=8, choices=Languages.choices, blank=True, default=None, null=True
     )
@@ -47,26 +47,40 @@ class Recipe(models.Model):
     # the number of items/servings, and the name of the item.
     # Thus, we can support both "5 cookies" and "2 servings"
     yields_type = models.CharField(
-        blank=True, max_length=32, default=""
+        null=True, blank=True, max_length=32, default=""
     )  # blank => "serving"  # noqa
     yields_number = models.IntegerField(
         null=True, blank=True, validators=[MinValueValidator(0)]
     )
 
+    original_author = models.CharField(
+        max_length=128, blank=True, null=True, default=None
+    )
     # For example, if the recipe has an accompanying youtube video
-    video_url = models.URLField(blank=True, default="")
+    video_url = models.URLField(blank=True, null=True, default=None)
     # Source url if scraped or otherwise retrieved from a web page
-    origin_url = models.URLField(blank=True, null=True, unique=True)
+    origin_url = models.URLField(blank=True, null=True, unique=True, default=None)
     # For specifying any other sources: books, people, ...
-    other_source = models.CharField(max_length=256, blank=True, default="")
+    other_source = models.CharField(max_length=256, blank=True, null=True, default=None)
 
     class Meta:
         constraints = [
             models.CheckConstraint(check=~Q(title__exact=""), name="title not empty"),
-            models.CheckConstraint(check=~Q(preamble__exact=""), name="preamble not empty"),
-            models.CheckConstraint(check=~Q(instructions__exact=""), name="instructions not empty"),
-            models.CheckConstraint(check=~Q(rest_text__exact=""), name="rest_text not empty"),
-            models.CheckConstraint(check=~Q(original_author__exact=""), name="original_author not empty"),
+            models.CheckConstraint(
+                check=~Q(preamble__exact=""), name="preamble not empty"
+            ),
+            models.CheckConstraint(
+                check=~Q(instructions__exact=""), name="instructions not empty"
+            ),
+            models.CheckConstraint(
+                check=~Q(rest_text__exact=""), name="rest_text not empty"
+            ),
+            models.CheckConstraint(
+                check=~Q(original_author__exact=""), name="original_author not empty"
+            ),
+            models.CheckConstraint(
+                check=~Q(other_source__exact=""), name="other_source not empty"
+            ),
         ]
 
     def __repr__(self) -> str:
@@ -208,7 +222,10 @@ class RecipeIngredient(models.Model):
 
     # The amount to use when making the base recipe
     base_amount = models.FloatField(
-        blank=True, default=0, validators=[MinValueValidator(0.0)]
+        blank=True,
+        validators=[MinValueValidator(0.0)],
+        null=True,
+        default=None,
     )
     unit = models.CharField(
         max_length=16,
@@ -219,7 +236,9 @@ class RecipeIngredient(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=~Q(group_name__exact=""), name="group_name not empty")
+            models.CheckConstraint(
+                check=~Q(group_name__exact=""), name="group_name not empty"
+            )
         ]
 
     def __repr__(self) -> str:
@@ -227,3 +246,23 @@ class RecipeIngredient(models.Model):
 
     def __str__(self) -> str:
         return f"{self.recipe.title}: {self.name_in_recipe}"
+
+
+class RecipeEmbedding(models.Model):
+    recipe = models.ForeignKey(
+        to=Recipe, on_delete=models.CASCADE, related_name="embeddings"
+    )
+    origin_field = "rest_text"
+    # Embeddings are generated using Cohere's 'embed-multilingual-v3.0' model
+    embedding = VectorField(dimensions=1024)
+
+    class Meta:
+        indexes = [
+            IvfflatIndex(
+                name="recipe_embeddings_ivf",
+                fields=["embedding"],
+                # TODO: Consider using just a single list
+                lists=10,  # pgvector readme suggests nrows/1000 as a baseline
+                opclasses=["vector_cosine_ops"],
+            )
+        ]
