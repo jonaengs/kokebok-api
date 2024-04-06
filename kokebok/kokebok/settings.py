@@ -8,7 +8,6 @@ from django.core.management.utils import get_random_secret_key
 # Declare env vars with their type and default value
 env = environ.Env(
     #
-    DEBUG=(bool, False),
     PROD_ENV_FILE=(str, ".env"),
     LOCAL_ENV_FILE=(str, ".env.dev"),
     STRICT_SSL=(bool, True),
@@ -20,14 +19,19 @@ env = environ.Env(
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = env("DEBUG")
-
 # Read .env file. "Live" env variables have precedence over .env file contents
-env_file = env("LOCAL_ENV_FILE") if DEBUG else env("PROD_ENV_FILE")
-env.read_env(BASE_DIR / env_file)
+dev_env_path = BASE_DIR / env("LOCAL_ENV_FILE")
+prod_env_path = BASE_DIR / env("PROD_ENV_FILE")
+if dev_env_path.exists():
+    DEBUG = True
+    env.read_env(dev_env_path)
+else:
+    DEBUG = False
+    env.read_env(prod_env_path)
 
 STRICT_SSL = env("STRICT_SSL")
 if STRICT_SSL:
+    # Strict SSL enables HSTS, which is a annoying to undo
     assert not DEBUG, "Don't enable strict SSL measures in debug mode"
 
 SECRET_KEY = env.str("SECRET_KEY", default=get_random_secret_key())

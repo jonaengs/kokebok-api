@@ -1,8 +1,6 @@
-from collections import Counter
 from itertools import groupby
 
 import ninja
-from django.db import transaction
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
 from ninja import File, Form, Router
@@ -16,12 +14,12 @@ from recipes.api_schemas import (
     IngredientCreationSchema,
     IngredientDetailSchema,
     IngredientUpdateSchema,
-    RecipeIngredientListSchema,
 )
 from recipes.image_parsing import parse_img
 from recipes.models import Ingredient, Recipe, RecipeIngredient
 from recipes.scraping import scrape
 from recipes.scraping.base import ScrapedRecipe
+from recipes.services import create_recipe, update_recipe
 
 from kokebok import settings
 
@@ -36,27 +34,7 @@ def recipe_add(
     full_recipe: FullRecipeCreationSchema,
     hero_image: UploadedFile | None = File(None),
 ):
-    recipe_data = full_recipe.dict()
-    ingredients = recipe_data.pop("ingredients")
-
-    # Create model instances
-    recipe = Recipe(**recipe_data, hero_image=hero_image)
-    ris = [
-        RecipeIngredient(recipe=recipe, **recipe_ingredient)
-        for recipe_ingredient in ingredients
-    ]
-
-    # Perform a full clean of recipe and recipe ingredients before saving
-    recipe.full_clean()
-    for ri in ris:
-        # Exclude recipe because it technically doesn't exist yet (before saving)
-        ri.full_clean(exclude=["recipe"])
-
-    # Save
-    with transaction.atomic():
-        recipe.save()
-        for ri in ris:
-            ri.save()
+    recipe = create_recipe(full_recipe, hero_image)
 
     return {"id": recipe.id}
 
@@ -75,9 +53,7 @@ def recipe_list(request):
     for _, group in groupby(rec_ingrs, key=lambda ri: ri.recipe.id):
         recipe_ingredients = list(group)
         recipe = recipe_ingredients[0].recipe
-        recipes.append(
-            recipe.__dict__ | {"recipe_ingredients": recipe_ingredients} 
-        )
+        recipes.append(recipe.__dict__ | {"recipe_ingredients": recipe_ingredients})
 
     return recipes
 
@@ -95,62 +71,16 @@ def recipe_update(
     request,
     recipe_id: int,
     full_recipe: Form[FullRecipeUpdateSchema],
-    hero_image: File[UploadedFile],
+    hero_image: UploadedFile | None = File(None),
 ):
-    """
-    Returns the updated recipe and recipe ingredients
-
-    Note the following logic for the ingredients (RecipeIngredient)
-        * argument ingredients with ids are located and updated
-        * argument ingredients without ids are created fresh and given ids
-        * Existing recipe ingredients whose id are not included in the request data
-            are deleted.
-    """
-    recipe_data = full_recipe.dict()
-    ingredients = recipe_data.pop("ingredients")
-
-    # Retrieve existing data
     recipe_qs = Recipe.objects.filter(id=recipe_id)
-    recipe_ingredients = RecipeIngredient.objects.filter(recipe_id=recipe_id)
+    original_recipe = get_object_or_404(
+        recipe_qs, id=recipe_id
+    )  # error if recipe id not found
 
-    # Validation
-    recipe = get_object_or_404(recipe_qs, id=recipe_id)  # error if recipe id not found
-    ri_id_counts = Counter(ri["id"] for ri in ingredients if ri["id"])
-    if ri_id_counts and max(ri_id_counts.values()) > 1:
-        return 403, {"ingredients": "Duplicate ingredient id detected"}
+    updated_recipe = update_recipe(original_recipe, full_recipe, hero_image)
 
-    # Perform updates
-    # If this is slow, try deleting all ris and then creating all in the request instead
-    try:
-        with transaction.atomic(durable=True):
-            # TODO: Find better way to update recipe
-            for k, v in recipe_data.items():
-                setattr(recipe, k, v)
-            recipe.hero_image = hero_image
-            recipe.save()
-
-            # Delete ingredients missing from the request
-            # Has to be performed before creation due to lazy django querying weirdness
-            sent_ri_ids = set(ri_id_counts.keys())
-            missing_ris = recipe_ingredients.exclude(id__in=sent_ri_ids)
-            for existing_ingredient in missing_ris:
-                existing_ingredient.delete()
-
-            # Update or create ingredients included in the request
-            for ingredient in ingredients:
-                if not ingredient.get("id") is None:
-                    ri = recipe_ingredients.filter(id=ingredient["id"])
-                    ri.update(**ingredient)
-                else:
-                    ri = RecipeIngredient(**ingredient, recipe_id=recipe.id)
-                    ri.full_clean()
-                    ri.save()
-    except ValidationError as e:
-        # TODO: change str(val) to something better
-        return 403, {key: str(val) for key, val in e.error_dict.items()}
-
-    recipe.refresh_from_db()
-    return recipe
+    return updated_recipe
 
 
 @router.delete("recipe/{recipe_id}", response=FullRecipeDetailSchema)

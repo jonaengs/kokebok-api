@@ -1,4 +1,4 @@
-from ninja import Field, ModelSchema
+from ninja import Field, ModelSchema, Schema
 from recipes.models import Ingredient, Recipe, RecipeIngredient
 
 # Terminology:
@@ -57,21 +57,14 @@ class RecipeIngredientDetailSchema(ModelSchema):
         exclude = ["base_ingredient"]
 
 
-class RecipeIngredientCreationSchema(ModelSchema):
+class RecipeIngredientCreationSchema(Schema):
     base_ingredient_id: int
+    name_in_recipe: str
+    is_optional: bool = False
+    group_name: str | None = None
 
-    class Meta:
-        model = RecipeIngredient
-        exclude = ["id", "recipe", "base_ingredient"]
-
-
-class RecipeIngredientUpdateSchema(ModelSchema):
-    base_ingredient_id: int
-    id: int | None = None  # Optional when used with RecipeUpdateSchema
-
-    class Meta:
-        model = RecipeIngredient
-        exclude = ["id", "recipe", "base_ingredient"]
+    base_amount: float | None = None
+    unit: str = ""
 
 
 ################
@@ -109,20 +102,45 @@ class FullRecipeDetailSchema(ModelSchema):
         fields = "__all__"
 
 
-class FullRecipeCreationSchema(ModelSchema):
+class FullRecipeCreationSchema(Schema):
     """Creation schema for recipe with its recipe ingredients"""
+
+    title: str
+    preamble: str | None = None
+    instructions: str | None = None
+    rest_text: str | None = None
+
+    language: str | None = None
+    total_time: int | None = None
+
+    yields_type: str | None = None
+    yields_number: int | None = None
+
+    original_author: str | None = None
+    video_url: str | None = None
+    origin_url: str | None = None
+    other_source: str | None = None
 
     ingredients: list[RecipeIngredientCreationSchema]
 
-    class Meta:
-        model = Recipe
-        exclude = ["id", "created_at", "hero_image", "thumbnail"]
 
+class FullRecipeUpdateSchema(Schema):
+    """Update schema for recipe with its recipe ingredients"""
 
-class FullRecipeUpdateSchema(ModelSchema):
-    ingredients: list[RecipeIngredientUpdateSchema]
-    """Update schema for recipe and recipe ingredients"""
+    title: str
+    preamble: str | None = None
+    instructions: str | None = None
+    rest_text: str | None = None
 
-    class Meta:
-        model = Recipe
-        exclude = ["id", "created_at", "hero_image", "thumbnail"]
+    language: str | None = None
+    total_time: int | None = None
+
+    yields_type: str | None = None
+    yields_number: int | None = None
+
+    original_author: str | None = None
+    video_url: str | None = None
+    origin_url: str | None = None
+    other_source: str | None = None
+
+    ingredients: list[RecipeIngredientCreationSchema]

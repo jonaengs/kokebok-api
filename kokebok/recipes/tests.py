@@ -1,6 +1,8 @@
 import base64
 import json
+from unittest.mock import patch
 
+import numpy as np
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db.models import Q
 from django.forms import ValidationError
@@ -13,11 +15,15 @@ from recipes.api_schemas import (
     FullRecipeListSchema,
     FullRecipeUpdateSchema,
     IngredientDetailSchema,
-    RecipeIngredientUpdateSchema,
+    RecipeIngredientCreationSchema,
 )
 from recipes.models import Ingredient, Recipe, RecipeIngredient
 
 from kokebok import settings
+
+
+def mock_embed(*op_texts: str | None) -> list[list[float]]:
+    return [np.random.rand((1024)) for ot in op_texts if ot is not None]
 
 
 class RecipeTests(TestCase):
@@ -85,6 +91,12 @@ class RecipeTests(TestCase):
 
 
 class APITests(TestCase):
+    def setUp(self):
+        # Note that we patch the function where it is being used (services), not where it is defined (embedding)
+        self.embed_patcher = patch("recipes.services.embed", mock_embed)
+        self.embed_patcher.start()
+        self.addCleanup(self.embed_patcher.stop)
+
     def _as_api_response_data(self, schema):
         # Transforms the given ninja schema instance in the same
         # manner that ninja's api does by default
@@ -252,7 +264,7 @@ class APITests(TestCase):
         data = FullRecipeUpdateSchema(
             title="new title",
             ingredients=[
-                RecipeIngredientUpdateSchema(
+                RecipeIngredientCreationSchema(
                     name_in_recipe="new name",
                     base_ingredient_id=0,  # err id
                 )
@@ -291,7 +303,7 @@ class APITests(TestCase):
         data = FullRecipeUpdateSchema(
             title="new title",
             ingredients=[
-                RecipeIngredientUpdateSchema(
+                RecipeIngredientCreationSchema(
                     name_in_recipe="new name",
                     base_ingredient_id=ingr.id,
                 )
