@@ -1,7 +1,6 @@
-from itertools import chain
-
-from django.forms import model_to_dict
-from recipes.models import Ingredient, Recipe, RecipeIngredient
+from recipes.api_schemas import FullRecipeCreationSchema, RecipeIngredientCreationSchema
+from recipes.services import create_recipe
+from recipes.models import Ingredient, RecipeIngredient
 
 _ingredients = [
     Ingredient(id=1001, name_no="fisk", name_de="fisch"),
@@ -15,106 +14,82 @@ _ingredients = [
 ]
 
 _recipes = [
-    Recipe(
-        id=1001,
+    FullRecipeCreationSchema(
         title="Fischsuppe",
         instructions="<h1>Die beste Fischsuppe der Welt!</h1>\n<p>\nSo schaffst du es: ...\n\n</p>",  # noqa
+        ingredients=[
+            RecipeIngredientCreationSchema(
+                base_ingredient_id=1001,
+                name_in_recipe="Ein großer Fisch",
+            ),
+            RecipeIngredientCreationSchema(
+                base_ingredient_id=1002,
+                name_in_recipe="Wasser",
+            ),
+            RecipeIngredientCreationSchema(
+                base_ingredient_id=1003,
+                name_in_recipe="Eine Prise Salz",
+            ),
+            RecipeIngredientCreationSchema(
+                base_ingredient_id=1004,
+                name_in_recipe="Zwei in Scheiben geschnittene Karotten",
+                is_optional=True,
+            ),
+        ]
     ),
-    Recipe(
-        id=1002,
+    FullRecipeCreationSchema(
         title="Salzwasser",
         instructions="Geben Sie das Salz ins Wasser. Das ist alles. Du bist fertig!",  # noqa
+        ingredients=[
+            RecipeIngredientCreationSchema(
+                base_ingredient_id=1002,
+                name_in_recipe="Ein glas Wasser",
+            ),
+            RecipeIngredientCreationSchema(
+                base_ingredient_id=1003,
+                name_in_recipe="Ein Teelöffel Salz",
+            ),
+        ]
     ),
-    Recipe(
-        id=1003,
+    FullRecipeCreationSchema(
         title="Pannekaker",
         instructions="Visp sammen egg, salt og melk. Tilsett mel og visp sammen til en klumpfri røre. La røra svelle ca 1/2 time. Rør den opp fra bunnen. Stek pannekaker. Server pannekaker med syltetøy eller sukker.",  # noqa
+        ingredients=[
+            RecipeIngredient(
+                name_in_recipe="egg",
+                base_ingredient_id=1005,
+                base_amount=2,
+                unit="count",
+            ),
+            RecipeIngredient(
+                name_in_recipe="salt",
+                base_ingredient_id=1003,
+                base_amount=1 / 4,
+                unit="tsp",
+            ),
+            RecipeIngredient(
+                name_in_recipe="melk",
+                base_ingredient_id=1006,
+                base_amount=6,
+                unit="dl",
+            ),
+            RecipeIngredient(
+                name_in_recipe="smør til steking",
+                base_ingredient_id=1008,
+                base_amount=0,
+                unit="",
+            ),
+        ]
     ),
 ]
-
-_recipe_ingredients = [
-    # Fiskesuppe
-    RecipeIngredient(
-        id=1001,
-        recipe_id=1001,
-        base_ingredient_id=1001,
-        name_in_recipe="Ein großer Fisch",
-    ),
-    RecipeIngredient(
-        id=1002,
-        recipe_id=1001,
-        base_ingredient_id=1002,
-        name_in_recipe="Wasser",
-    ),
-    RecipeIngredient(
-        id=1003,
-        recipe_id=1001,
-        base_ingredient_id=1003,
-        name_in_recipe="Eine Prise Salz",
-    ),
-    RecipeIngredient(
-        id=1004,
-        recipe_id=1001,
-        base_ingredient_id=1004,
-        name_in_recipe="Zwei in Scheiben geschnittene Karotten",
-        is_optional=True,
-    ),
-    # Saltvann
-    RecipeIngredient(
-        id=1005,
-        recipe_id=1002,
-        base_ingredient_id=1002,
-        name_in_recipe="Ein glas Wasser",
-    ),
-    RecipeIngredient(
-        id=1006,
-        recipe_id=1002,
-        base_ingredient_id=1003,
-        name_in_recipe="Ein Teelöffel Salz",
-    ),
-    # Pannekaker
-    RecipeIngredient(
-        name_in_recipe="egg",
-        id=1007,
-        recipe_id=1003,
-        base_ingredient_id=1005,
-        base_amount=2,
-        unit="count",
-    ),
-    RecipeIngredient(
-        name_in_recipe="salt",
-        id=1008,
-        recipe_id=1003,
-        base_ingredient_id=1003,
-        base_amount=1 / 4,
-        unit="tsp",
-    ),
-    RecipeIngredient(
-        name_in_recipe="melk",
-        id=1009,
-        recipe_id=1003,
-        base_ingredient_id=1006,
-        base_amount=6,
-        unit="dl",
-    ),
-    RecipeIngredient(
-        name_in_recipe="smør til steking",
-        id=1010,
-        recipe_id=1003,
-        base_ingredient_id=1008,
-        base_amount=0,
-        unit="",
-    ),
-]
-
 
 def insert_dummy_data():
-    for instance in chain(_ingredients, _recipes, _recipe_ingredients):
-        instance.clean()
+    for ingredient in _ingredients:
+        ingredient.save()
 
-        # Update object if it exists, insert if it doesn't
-        model = type(instance)
-        if existing := model.objects.filter(pk=instance.id):
-            existing.update(**model_to_dict(instance))
-        else:
-            instance.save()
+    for recipe_data in _recipes:
+        create_recipe(
+            recipe_data,
+            None
+        )
+        
