@@ -1,6 +1,6 @@
 from recipes.api_schemas import FullRecipeCreationSchema, RecipeIngredientCreationSchema
 from recipes.services import create_recipe
-from recipes.models import Ingredient, RecipeIngredient
+from recipes.models import Ingredient, Recipe, RecipeIngredient
 
 _ingredients = [
     Ingredient(id=1001, name_no="fisk", name_de="fisch"),
@@ -83,7 +83,11 @@ _recipes = [
     ),
 ]
 
-def insert_dummy_data():
+def insert_dummy_data(clear_existing=False):
+    if clear_existing:
+        Recipe.objects.all().delete()
+        Ingredient.objects.all().delete()
+
     for ingredient in _ingredients:
         ingredient.save()
 

@@ -3,9 +3,10 @@ from itertools import groupby
 import ninja
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
-from ninja import File, Form, Router
+from ninja import File, Router
 from ninja.files import UploadedFile
 from ninja.security import django_auth
+from recipes.embedding import embed_query
 from recipes.api_schemas import (
     FullRecipeCreationSchema,
     FullRecipeDetailSchema,
@@ -16,10 +17,11 @@ from recipes.api_schemas import (
     IngredientUpdateSchema,
 )
 from recipes.image_parsing import parse_img
-from recipes.models import Ingredient, Recipe, RecipeIngredient
+from recipes.models import Ingredient, Recipe, RecipeEmbedding, RecipeIngredient
 from recipes.scraping import scrape
 from recipes.scraping.base import ScrapedRecipe
 from recipes.services import create_recipe, update_recipe
+from pgvector.django import CosineDistance, L2Distance
 
 from kokebok import settings
 
@@ -70,7 +72,7 @@ def recipe_detail(request, recipe_id: int):
 def recipe_update(
     request,
     recipe_id: int,
-    full_recipe: Form[FullRecipeUpdateSchema],
+    full_recipe: FullRecipeUpdateSchema,
     hero_image: UploadedFile | None = File(None),
 ):
     recipe_qs = Recipe.objects.filter(id=recipe_id)
@@ -145,7 +147,7 @@ def scrape_recipe(request, url: str):
 @router.post(
     "from_image", response={200: ScrapedRecipe, 400: str, 404: str}, tags=["scrape"]
 )
-def img_upload(request, img: UploadedFile):
+def recipe_from_image(request, img: UploadedFile):
     if not settings.OCR_ENABLED:
         return 404, "OCR/Text-recognition service not enabled for this system"
 

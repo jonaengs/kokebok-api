@@ -5,7 +5,7 @@ that is too complex to have in the api file directly.
 
 from django.forms import ValidationError
 from ninja import File, UploadedFile
-from recipes.embedding import embed
+from recipes.embedding import embed_docs
 from recipes.models import Recipe, RecipeEmbedding, RecipeIngredient
 from recipes.api_schemas import FullRecipeCreationSchema, FullRecipeUpdateSchema
 from django.db import transaction
@@ -30,7 +30,7 @@ def create_recipe(data: FullRecipeCreationSchema, hero_image: File[UploadedFile]
         ri.full_clean(exclude=["recipe"])
 
     # Create embeddings 
-    raw_embeddings = embed(
+    raw_embeddings = embed_docs(
         recipe.title,
         recipe.preamble,
         recipe.instructions,
@@ -79,7 +79,7 @@ def update_recipe(recipe: Recipe, data: FullRecipeUpdateSchema, hero_image: File
         recipe.instructions != recipe_data["instructions"] or 
         recipe.rest_text != recipe_data["rest_text"]
     ):
-        raw_embeddings = embed(
+        raw_embeddings = embed_docs(
             recipe_data["title"],
             recipe_data["preamble"],
             recipe_data["instructions"],

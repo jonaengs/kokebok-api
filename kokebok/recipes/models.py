@@ -47,7 +47,7 @@ class Recipe(models.Model):
     # the number of items/servings, and the name of the item.
     # Thus, we can support both "5 cookies" and "2 servings"
     yields_type = models.CharField(
-        null=True, blank=True, max_length=32, default=""
+        null=True, blank=True, max_length=32, default=None
     )  # blank => "serving"  # noqa
     yields_number = models.IntegerField(
         null=True, blank=True, validators=[MinValueValidator(0)]
