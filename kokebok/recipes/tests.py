@@ -93,7 +93,7 @@ class RecipeTests(TestCase):
 class APITests(TestCase):
     def setUp(self):
         # Note that we patch the function where it is being used (services), not where it is defined (embedding)
-        self.embed_patcher = patch("recipes.services.embed", mock_embed)
+        self.embed_patcher = patch("recipes.services.embed_docs", mock_embed)
         self.embed_patcher.start()
         self.addCleanup(self.embed_patcher.stop)
 
@@ -192,24 +192,24 @@ class APITests(TestCase):
     def test_recipe_update(self):
         """
         Updating a recipe can involve both adding and removing existing recipe
-        ingredients. This test tests both cases, with one ri being deleted
-        and one added in the same update request.
+        ingredients.
         """
 
-        # Setup test data
+        # Setup test data, creating a recipe with two ingredients
         rec = Recipe.objects.create(title="old title", id=111)
-        ingr = Ingredient.objects.create(name_en="i", id=222)
-        ri_to_rename = RecipeIngredient.objects.create(
+        ingr1 = Ingredient.objects.create(name_en="a", id=222)
+        ingr2 = Ingredient.objects.create(name_en="b", id=333)
+        ri1 = RecipeIngredient.objects.create(
             id=333,
             name_in_recipe="rename me",
             recipe=rec,
-            base_ingredient=ingr,
+            base_ingredient=ingr1,
         )
-        ri_to_delete = RecipeIngredient.objects.create(
+        ri2 = RecipeIngredient.objects.create(
             id=444,
             name_in_recipe="delete me",
             recipe=rec,
-            base_ingredient=ingr,
+            base_ingredient=ingr1,
         )
 
         url = reverse("api-1.0.0:recipe_update", args=[rec.id])
@@ -217,31 +217,34 @@ class APITests(TestCase):
         recipe_data = {
             "title": "new title",
             "ingredients": [
-                {"id": 333, "name_in_recipe": "new name", "base_ingredient_id": 222},
-                {"name_in_recipe": "add me", "base_ingredient_id": 222},
+                {"name_in_recipe": "renamed", "base_ingredient_id": ingr1.id},
+                {"name_in_recipe": "created", "base_ingredient_id": ingr2.id},
             ],
         }
 
         form = {"hero_image": "", "full_recipe": json.dumps(recipe_data)}
-        response = self.client.post(url, data=form, content_type="multipart/form-data")
+        response = self.client.post(url, data=form)
         self.assertEqual(response.status_code, 200, msg=response.content)
 
-        # Check that Recipe and RecipeIngredients were updated as expected
+        # Check that Recipe was updated as expected
         self.assertEqual(rec.title, "old title")
-        self.assertEqual(ri_to_rename.name_in_recipe, "rename me")
         rec.refresh_from_db()
-        ri_to_rename.refresh_from_db()
         self.assertEqual(rec.title, "new title")
-        self.assertEqual(ri_to_rename.name_in_recipe, "new name")
+
+        # Check that RecipeIngredients were deleted and recreated as expected
+        with self.assertRaises(RecipeIngredient.DoesNotExist):
+            ri1.refresh_from_db()
+        with self.assertRaises(RecipeIngredient.DoesNotExist):
+            ri2.refresh_from_db()
+        renamed_ri = RecipeIngredient.objects.get(Q(recipe_id=rec.id) & Q(name_in_recipe="renamed"))
+        self.assertEqual(renamed_ri.base_ingredient_id, ingr1.id)
+        added_ri = RecipeIngredient.objects.get(Q(recipe_id=rec.id) & Q(name_in_recipe="created"))
+        self.assertEqual(added_ri.base_ingredient_id, ingr2.id)
+
         # Check that response data matches db data
         resp_data = json.loads(response.content)
         self.assertEqual(resp_data["title"], "new title")
-        self.assertEqual(resp_data["ingredients"][0]["name_in_recipe"], "new name")
-
-        # Check deletion and creation
-        with self.assertRaises(RecipeIngredient.DoesNotExist):
-            ri_to_delete.refresh_from_db()
-        RecipeIngredient.objects.get(Q(recipe_id=rec.id) & Q(name_in_recipe="add me"))
+        self.assertEqual(resp_data["ingredients"][0]["name_in_recipe"], "renamed")
 
         # Make sure we didn't create any objects
         self.assertEqual(Recipe.objects.count(), 1)
