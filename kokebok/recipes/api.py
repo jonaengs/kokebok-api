@@ -129,6 +129,29 @@ def ingredient_delete(request, ingredient_id: int):
 #
 
 
+@router.get("search", tags=["search"])
+def search(request, query: str):
+    query_embedding = embed_query(query)
+
+    # Sanity checking
+    simlarities = RecipeEmbedding.objects.annotate(
+        distance=L2Distance('embedding', query_embedding)
+    ).prefetch_related('recipe').order_by('distance').values_list('recipe__title', 'distance').all()
+    print(*[tuple(s) for s in simlarities], sep='\n')
+
+
+    # TODO: Get distinct recipe_id working with distance ordering
+    embeds = RecipeEmbedding.objects.order_by(
+        L2Distance('embedding', query_embedding)
+    ).prefetch_related('recipe').values_list('recipe__title', flat=True).all()
+
+    recipe_ids = list(
+        {rid: 0 for rid in embeds}.keys()
+    )[:10]
+
+    return recipe_ids
+
+
 @router.get("scrape", response={200: ScrapedRecipe, 400: str}, tags=["scrape"])
 def scrape_recipe(request, url: str):
     existing = Recipe.objects.filter(origin_url=url).exists()
