@@ -13,7 +13,7 @@ from recipes.scraping.base import (
 from recipes.scraping.registry import _registry
 
 
-def parse_ingredient_string(s: str, group: str = "") -> ScrapedRecipeIngredient:
+def parse_ingredient_string(s: str, group: str | None = None) -> ScrapedRecipeIngredient:
     """
     Tries matching the ingredient string against:
     "<amt> <unit> <ingredient_name>"

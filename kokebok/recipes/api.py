@@ -1,6 +1,7 @@
-from itertools import groupby
+from itertools import chain, groupby
 
 import ninja
+from django.db import transaction
 from django.forms import ValidationError
 from django.shortcuts import get_object_or_404
 from ninja import File, Router
@@ -19,7 +20,7 @@ from recipes.api_schemas import (
 from recipes.image_parsing import parse_img
 from recipes.models import Ingredient, Recipe, RecipeEmbedding, RecipeIngredient
 from recipes.scraping import scrape
-from recipes.scraping.base import ScrapedRecipe
+from recipes.scraping.base import IngredientGroupDict, ScrapedRecipe
 from recipes.services import create_recipe, update_recipe
 from pgvector.django import CosineDistance, L2Distance
 
@@ -152,19 +153,50 @@ def search(request, query: str):
     return recipe_ids
 
 
-@router.get("scrape", response={200: ScrapedRecipe, 400: str}, tags=["scrape"])
+@router.get("scrape", response={200: ScrapedRecipe, 400: str, 403: str}, tags=["scrape"])
 def scrape_recipe(request, url: str):
     existing = Recipe.objects.filter(origin_url=url).exists()
     if existing:
         return 403, "Recipe with given url already exists."
 
-    recipe = scrape(url)
+    scraped_data: ScrapedRecipe = scrape(url)
     try:
-        recipe.clean()
+        scraped_data.clean()
     except ValidationError as e:
         return 403, {"message": e.message}
 
-    return recipe
+    return scraped_data
+
+
+@router.get("scrape_bad", response={200: str, 403: str}, tags=["scrape"])
+def scrape_recipe_bad(request, url: str):
+    """
+    Creates a recipe and ingredients with norwegian names from the given url.
+    Only to be used for quick prototyping/testing purposes.!
+    """
+    existing = Recipe.objects.filter(origin_url=url).exists()
+    if existing:
+        return 403, "Recipe with given url already exists."
+    
+    # TODO: Remove this. It's just for quickly getting some data going
+    scraped_recipe = scrape(url)
+    scraped_dict = scraped_recipe.dict()
+    ingredients: IngredientGroupDict = scraped_dict.pop("ingredients")
+
+    # TODO: download image and save it to the recipe
+    hero_image_link = scraped_dict.pop("hero_image_link")
+    with transaction.atomic():
+        recipe = Recipe.objects.create(**scraped_dict)
+        ingredients_list = chain(*ingredients.values())
+        for ingredient in ingredients_list:
+            ingredient_name_no = ingredient.pop("base_ingredient_str")
+            try:
+                base_ingredient = Ingredient.objects.get(name_no=ingredient_name_no)
+            except Ingredient.DoesNotExist:
+                base_ingredient = Ingredient.objects.create(name_no=ingredient_name_no)
+            RecipeIngredient.objects.create(recipe=recipe, **ingredient, base_ingredient=base_ingredient)
+
+    return "ok"
 
 
 @router.post(

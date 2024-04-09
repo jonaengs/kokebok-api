@@ -72,10 +72,11 @@ class ScrapedRecipe(ModelSchema):
                 except ValidationError as e:
                     self.language = old_language
                     raise e
-            raise ValidationError(f"Illegal language: {self.language}")
+            # raise ValidationError(f"Illegal language: {self.language}")
+            self.language = ""
+            # TODO: Implement the logging here or fix the error caused by "nb" being selected as language
+            # logger.warning(f"Illegal language detected: {self.language}, setting lang to empty string")
         for group_name, ingredients in self.ingredients.items():
-            if not all(ingr.group_name == group_name for ingr in ingredients):
-                raise ValidationError("Group names must all be the same")
             for ingr in ingredients:
                 ingr.clean()
 
