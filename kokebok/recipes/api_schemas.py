@@ -79,6 +79,7 @@ class FullRecipeListSchema(ModelSchema):
     """
 
     ingredients: list[RecipeIngredientListSchema] = Field(alias="recipe_ingredients")
+    thumbnail: str | None
 
     class Meta:
         model = Recipe

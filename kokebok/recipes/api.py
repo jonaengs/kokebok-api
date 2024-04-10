@@ -1,12 +1,15 @@
+import io
 from itertools import chain, groupby
 
 import ninja
 from django.db import transaction
 from django.forms import ValidationError
+from django.core.files.images import ImageFile
 from django.shortcuts import get_object_or_404
 from ninja import File, Router
 from ninja.files import UploadedFile
 from ninja.security import django_auth
+import requests
 from recipes.embedding import embed_query
 from recipes.api_schemas import (
     FullRecipeCreationSchema,
@@ -21,7 +24,7 @@ from recipes.image_parsing import parse_img
 from recipes.models import Ingredient, Recipe, RecipeEmbedding, RecipeIngredient
 from recipes.scraping import scrape
 from recipes.scraping.base import IngredientGroupDict, ScrapedRecipe
-from recipes.services import create_recipe, update_recipe
+from recipes.services import create_recipe, get_recipe_embeddings, update_recipe
 from pgvector.django import CosineDistance, L2Distance
 
 from kokebok import settings
@@ -56,7 +59,10 @@ def recipe_list(request):
     for _, group in groupby(rec_ingrs, key=lambda ri: ri.recipe.id):
         recipe_ingredients = list(group)
         recipe = recipe_ingredients[0].recipe
-        recipes.append(recipe.__dict__ | {"recipe_ingredients": recipe_ingredients})
+        recipes.append(recipe.__dict__ | {
+            "recipe_ingredients": recipe_ingredients,
+            "thumbnail": recipe.thumbnail and recipe.thumbnail.url
+        })
 
     return recipes
 
@@ -136,14 +142,14 @@ def search(request, query: str):
 
     # Sanity checking
     simlarities = RecipeEmbedding.objects.annotate(
-        distance=L2Distance('embedding', query_embedding)
+        distance=CosineDistance('embedding', query_embedding)
     ).prefetch_related('recipe').order_by('distance').values_list('recipe__title', 'distance').all()
     print(*[tuple(s) for s in simlarities], sep='\n')
 
 
     # TODO: Get distinct recipe_id working with distance ordering
     embeds = RecipeEmbedding.objects.order_by(
-        L2Distance('embedding', query_embedding)
+        CosineDistance('embedding', query_embedding)
     ).prefetch_related('recipe').values_list('recipe__title', flat=True).all()
 
     recipe_ids = list(
@@ -173,20 +179,27 @@ def scrape_recipe_bad(request, url: str):
     """
     Creates a recipe and ingredients with norwegian names from the given url.
     Only to be used for quick prototyping/testing purposes.!
+    
+    TODO: Remove this. It's just for quickly getting some data going
     """
     existing = Recipe.objects.filter(origin_url=url).exists()
     if existing:
         return 403, "Recipe with given url already exists."
     
-    # TODO: Remove this. It's just for quickly getting some data going
     scraped_recipe = scrape(url)
     scraped_dict = scraped_recipe.dict()
     ingredients: IngredientGroupDict = scraped_dict.pop("ingredients")
 
-    # TODO: download image and save it to the recipe
     hero_image_link = scraped_dict.pop("hero_image_link")
+    if hero_image_link:
+        image_data = requests.get(hero_image_link).content
+        image_name = hero_image_link.split("/")[-1]  # hacky but it works for now
+        hero_image = ImageFile(io.BytesIO(image_data), name=image_name)
+        scraped_dict["hero_image"] = hero_image
+
     with transaction.atomic():
         recipe = Recipe.objects.create(**scraped_dict)
+        
         ingredients_list = chain(*ingredients.values())
         for ingredient in ingredients_list:
             ingredient_name_no = ingredient.pop("base_ingredient_str")
@@ -195,6 +208,10 @@ def scrape_recipe_bad(request, url: str):
             except Ingredient.DoesNotExist:
                 base_ingredient = Ingredient.objects.create(name_no=ingredient_name_no)
             RecipeIngredient.objects.create(recipe=recipe, **ingredient, base_ingredient=base_ingredient)
+        
+        embeddings = get_recipe_embeddings(recipe)
+        for emb in embeddings:
+            emb.save()
 
     return "ok"
 

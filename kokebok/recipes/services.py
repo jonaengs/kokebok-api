@@ -12,6 +12,25 @@ from django.db import transaction
 
 HttpError = tuple[int, dict[str, str]]
 
+def get_recipe_embeddings(recipe: Recipe):
+    # Create embeddings 
+    raw_embeddings = embed_docs(
+        recipe.title,
+        recipe.preamble,
+        recipe.instructions,
+        recipe.rest_text,
+    )
+    embeddings = [
+        RecipeEmbedding(
+            recipe=recipe,
+            embedding=raw_embed
+        )
+        for raw_embed in raw_embeddings
+    ]
+
+    return embeddings
+
+
 def create_recipe(data: FullRecipeCreationSchema, hero_image: File[UploadedFile] | None):
     recipe_data = data.dict()
     ingredients = recipe_data.pop("ingredients")
@@ -29,21 +48,7 @@ def create_recipe(data: FullRecipeCreationSchema, hero_image: File[UploadedFile]
         # Exclude recipe because it technically doesn't exist yet (before saving)
         ri.full_clean(exclude=["recipe"])
 
-    # Create embeddings 
-    raw_embeddings = embed_docs(
-        recipe.title,
-        recipe.preamble,
-        recipe.instructions,
-        recipe.rest_text,
-    )
-    embeddings = [
-        RecipeEmbedding(
-            recipe=recipe,
-            embedding=raw_embed
-        )
-        for raw_embed in raw_embeddings
-    ]
-
+    embeddings = get_recipe_embeddings(recipe)
     # Save
     with transaction.atomic():
         recipe.save()
