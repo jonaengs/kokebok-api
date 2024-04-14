@@ -1,7 +1,7 @@
 from typing import Iterable
 import cohere
 
-def embed_docs_cohere(texts: Iterable[str]):
+def _embed_docs_cohere(texts: Iterable[str]):
     chunks: list[str] = []
     for text in texts:
         if len(text) > 1024: # conservatively estimate 2 chars per token, keeping within 512 tokens per chunk
@@ -27,7 +27,7 @@ def embed_docs_cohere(texts: Iterable[str]):
 
     return embeddings
 
-def embed_query_cohere(query: Iterable[str]):
+def _embed_query_cohere(query: Iterable[str]):
     # Requires CO_API_KEY environment variable to be set
     co = cohere.Client()
     response = co.embed(
@@ -44,8 +44,8 @@ def embed_query_cohere(query: Iterable[str]):
 
 def embed_docs(*opt_docs: str | None) -> list[list[float]]:
     docs = [t for t in opt_docs if t]
-    return embed_docs_cohere(docs)
+    return _embed_docs_cohere(docs)
 
 
 def embed_query(text: str) -> list[float]:
-    return embed_query_cohere(text)
+    return _embed_query_cohere(text)

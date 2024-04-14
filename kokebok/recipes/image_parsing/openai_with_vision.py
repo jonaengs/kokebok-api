@@ -112,6 +112,11 @@ You have been provided with the following hint to help you parse the image corre
 """.strip()
 
 
+model = "gpt-4-turbo"
+price_1k_tokens = 0.01  # in dollars
+
+
+
 def image_to_json(img_data: bytes, user_hint: str = "") -> str:
     full_user_text = USER_HINT_PREAMBLE.format(HINT=user_hint) if user_hint else ""
 
@@ -119,14 +124,14 @@ def image_to_json(img_data: bytes, user_hint: str = "") -> str:
     estimate_system_prompt_tokens = len(SYSTEM_PROMPT) / 3.5
     estimate_user_text_tokens = len(full_user_text) / 2.5
     estimate_image_tiles = len(img_data) / (512 * 512)
-    estimate_user_image_tokens = 170 * estimate_image_tiles
+    estimate_user_image_tokens = 85 + 170 * estimate_image_tiles
     estimate_total_input_tokens = math.ceil(
         estimate_system_prompt_tokens
         + estimate_user_text_tokens
         + estimate_user_image_tokens
     )
     print(f"{estimate_total_input_tokens=}")
-    estimate_input_cost = (estimate_total_input_tokens / 1000) * 0.01  # in dollars
+    estimate_input_cost = (estimate_total_input_tokens / 1000) * price_1k_tokens
     print(f"{estimate_input_cost=}")
 
     # Construct the chat messages
@@ -149,9 +154,9 @@ def image_to_json(img_data: bytes, user_hint: str = "") -> str:
     response = openai.ChatCompletion.create(
         presence_penalty=-1,  # Discourage new topics
         temperature=0.2,  # Make model more predictable
-        model="gpt-4-vision-preview",
+        model=model,
         messages=chat_messages,
-        # response_format={"type": "json_object"},  # Make sure output is JSON
+        response_format={"type": "json_object"},  # Make sure output is JSON
         stream=False,
         max_tokens=4096,
     )
@@ -161,8 +166,8 @@ def image_to_json(img_data: bytes, user_hint: str = "") -> str:
         raise ValueError("ChatGPT stopped due to content filter.")
 
     # More costs reporting
-    input_cost = response["usage"]["prompt_tokens"] * 0.01 / 1000
-    output_cost = response["usage"]["completion_tokens"] * 0.01 / 1000
+    input_cost = response["usage"]["prompt_tokens"] * price_1k_tokens / 1000
+    output_cost = response["usage"]["completion_tokens"] * price_1k_tokens / 1000
     total_cost = input_cost + output_cost
     print("COSTS:")
     print(f"{input_cost=} ({estimate_input_cost=})")
