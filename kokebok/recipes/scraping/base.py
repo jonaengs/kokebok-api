@@ -38,7 +38,7 @@ class ScrapedRecipeIngredient(ModelSchema):
 
     class Meta:
         model = RecipeIngredient
-        exclude = ["base_ingredient", "recipe"]
+        exclude = ["base_ingredient", "recipe", "id"]
 
     def clean(self):
         ...
