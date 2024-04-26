@@ -1,10 +1,8 @@
 fly.toml
 .git/
-**/*.sqlite3
-**/*.sqlite
 .venv
 .env*
-kokebok/data/*
+data/*
 
 # Add docker-compose file to make sure that fly doesn't use it and deploy a debug build
 docker-compose.yml

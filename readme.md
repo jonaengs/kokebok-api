@@ -19,7 +19,6 @@
 2. Run `docker-compose up -d`
 3. (First time only) Run `docker-compose exec api python manage.py migrate --noinput`
 
-
 ### Other stuff
 To quickly test out smaller scripts within the Django environment, run `python manage.py shell -c exec(open(<file_path>).read())`.
 

@@ -25,9 +25,9 @@ from recipes.models import Ingredient, Recipe, RecipeEmbedding, RecipeIngredient
 from recipes.scraping import scrape
 from recipes.scraping.base import IngredientGroupDict, ScrapedRecipe
 from recipes.services import create_recipe, get_recipe_embeddings, update_recipe
-from pgvector.django import CosineDistance, L2Distance
+from pgvector.django import CosineDistance
 
-from kokebok import settings
+from django.conf import settings
 
 router = Router(
     auth=ninja.constants.NOT_SET if settings.DEBUG else django_auth, tags=["recipes"]
@@ -59,10 +59,13 @@ def recipe_list(request):
     for _, group in groupby(rec_ingrs, key=lambda ri: ri.recipe.id):
         recipe_ingredients = list(group)
         recipe = recipe_ingredients[0].recipe
-        recipes.append(recipe.__dict__ | {
-            "recipe_ingredients": recipe_ingredients,
-            "thumbnail": recipe.thumbnail and recipe.thumbnail.url
-        })
+        recipes.append(
+            recipe.__dict__
+            | {
+                "recipe_ingredients": recipe_ingredients,
+                "thumbnail": recipe.thumbnail and recipe.thumbnail.url,
+            }
+        )
 
     return recipes
 
@@ -141,25 +144,33 @@ def search(request, query: str):
     query_embedding = embed_query(query)
 
     # Sanity checking
-    simlarities = RecipeEmbedding.objects.annotate(
-        distance=CosineDistance('embedding', query_embedding)
-    ).prefetch_related('recipe').order_by('distance').values_list('recipe__title', 'distance').all()
-    print(*[tuple(s) for s in simlarities], sep='\n')
-
+    simlarities = (
+        RecipeEmbedding.objects.annotate(
+            distance=CosineDistance("embedding", query_embedding)
+        )
+        .prefetch_related("recipe")
+        .order_by("distance")
+        .values_list("recipe__title", "distance")
+        .all()
+    )
+    print(*[tuple(s) for s in simlarities], sep="\n")
 
     # TODO: Get distinct recipe_id working with distance ordering
-    embeds = RecipeEmbedding.objects.order_by(
-        CosineDistance('embedding', query_embedding)
-    ).prefetch_related('recipe').values_list('recipe__title', flat=True).all()
+    embeds = (
+        RecipeEmbedding.objects.order_by(CosineDistance("embedding", query_embedding))
+        .prefetch_related("recipe")
+        .values_list("recipe__title", flat=True)
+        .all()
+    )
 
-    recipe_ids = list(
-        {rid: 0 for rid in embeds}.keys()
-    )[:10]
+    recipe_ids = list({rid: 0 for rid in embeds}.keys())[:10]
 
     return recipe_ids
 
 
-@router.get("scrape", response={200: ScrapedRecipe, 400: str, 403: str}, tags=["scrape"])
+@router.get(
+    "scrape", response={200: ScrapedRecipe, 400: str, 403: str}, tags=["scrape"]
+)
 def scrape_recipe(request, url: str):
     existing = Recipe.objects.filter(origin_url=url).exists()
     if existing:
@@ -179,13 +190,13 @@ def scrape_recipe_bad(request, url: str):
     """
     Creates a recipe and ingredients with norwegian names from the given url.
     Only to be used for quick prototyping/testing purposes.!
-    
+
     TODO: Remove this. It's just for quickly getting some data going
     """
     existing = Recipe.objects.filter(origin_url=url).exists()
     if existing:
         return 403, "Recipe with given url already exists."
-    
+
     scraped_recipe = scrape(url)
     scraped_dict = scraped_recipe.dict()
     ingredients: IngredientGroupDict = scraped_dict.pop("ingredients")
@@ -199,7 +210,7 @@ def scrape_recipe_bad(request, url: str):
 
     with transaction.atomic():
         recipe = Recipe.objects.create(**scraped_dict)
-        
+
         ingredients_list = chain(*ingredients.values())
         for ingredient in ingredients_list:
             ingredient_name_no = ingredient.pop("base_ingredient_str")
@@ -207,8 +218,10 @@ def scrape_recipe_bad(request, url: str):
                 base_ingredient = Ingredient.objects.get(name_no=ingredient_name_no)
             except Ingredient.DoesNotExist:
                 base_ingredient = Ingredient.objects.create(name_no=ingredient_name_no)
-            RecipeIngredient.objects.create(recipe=recipe, **ingredient, base_ingredient=base_ingredient)
-        
+            RecipeIngredient.objects.create(
+                recipe=recipe, **ingredient, base_ingredient=base_ingredient
+            )
+
         embeddings = get_recipe_embeddings(recipe)
         for emb in embeddings:
             emb.save()
