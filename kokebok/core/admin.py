@@ -28,10 +28,10 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
-    model = CustomUser
+    model = CustomUser  # type: ignore
     list_display = ["username", "is_staff", "last_login"]
-    list_filter: list[str] = []
-    search_fields: list[str] = []
+    list_filter = []  # type: ignore # -- type signture for these lists is horrible. Skip it.
+    search_fields = []  # type: ignore
 
 
 admin.site.register(CustomUser, CustomUserAdmin)

@@ -18,7 +18,7 @@ repos:
       - id: black
         args: [--config, kokebok/pyproject.toml]
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.5.1
+    rev: v1.10.0
     hooks:
         - id: mypy
           additional_dependencies: [

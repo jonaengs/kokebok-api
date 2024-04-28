@@ -42,7 +42,7 @@ def recipe_add(
 ):
     recipe = create_recipe(full_recipe, hero_image)
 
-    return {"id": recipe.id}
+    return {"id": recipe.pk}
 
 
 @router.get("recipes", response=list[FullRecipeListSchema])
@@ -56,7 +56,7 @@ def recipe_list(request):
     # Iterate over data manually to prevent django from executing tons of subqueries
     rec_ingrs = RecipeIngredient.objects.select_related("recipe").order_by("recipe")
     recipes = []
-    for _, group in groupby(rec_ingrs, key=lambda ri: ri.recipe.id):
+    for _, group in groupby(rec_ingrs, key=lambda ri: ri.recipe.pk):
         recipe_ingredients = list(group)
         recipe = recipe_ingredients[0].recipe
         recipes.append(
@@ -213,13 +213,14 @@ def scrape_recipe_bad(request, url: str):
 
         ingredients_list = chain(*ingredients.values())
         for ingredient in ingredients_list:
-            ingredient_name_no = ingredient.pop("base_ingredient_str")
+            ingredient_dict = ingredient.dict()
+            ingredient_name_no = ingredient_dict.pop("base_ingredient_str")
             try:
                 base_ingredient = Ingredient.objects.get(name_no=ingredient_name_no)
             except Ingredient.DoesNotExist:
                 base_ingredient = Ingredient.objects.create(name_no=ingredient_name_no)
             RecipeIngredient.objects.create(
-                recipe=recipe, **ingredient, base_ingredient=base_ingredient
+                recipe=recipe, **ingredient_dict, base_ingredient=base_ingredient
             )
 
         embeddings = get_recipe_embeddings(recipe)

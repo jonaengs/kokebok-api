@@ -1,10 +1,13 @@
 import io
 import sys
+from typing import cast
 
+from django.core.files.images import ImageFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
 from django.db.models import Q
+from django.db.models.fields.files import FileDescriptor, ImageFieldFile
 from django.dispatch import receiver
 from django.forms import ValidationError
 from pgvector.django import IvfflatIndex, VectorField
@@ -41,7 +44,7 @@ class Recipe(models.Model):
     # Image fields.
     hero_image = models.ImageField(blank=True, upload_to="recipes/hero_images")
     thumbnail = models.ImageField(blank=True, upload_to="recipes/thumbnails")
-    _replaced_image_fields: list[models.ImageField] = []  # Used for deleting old imgs
+    _replaced_image_fields: list[ImageFieldFile] = []  # Used for deleting old imgs
 
     # Recipe yields consists of two parts:
     # the number of items/servings, and the name of the item.
@@ -104,12 +107,14 @@ def recipe_thumbnail_updater(sender: type[Recipe], instance: Recipe, **kwargs):
     """Generates the thumbnail of recipe hero image on hero image addition/change"""
     # Thanks to https://stackoverflow.com/a/7934958 for idea of using pre_save signal
 
-    def make_thumbnail(image_field: models.ImageField):
+    def make_thumbnail(image_field: ImageFile):
         # Thanks to https://stackoverflow.com/a/12309950 for implementation
         thumb_img = Image.open(image_field)
         thumb_img.thumbnail((512, 512))  # TODO: Figure out good thumbnail size
         thumb_data = io.BytesIO()
         # Use same format for thumbnail as for image
+        assert thumb_img.format
+        assert image_field.name
         thumb_img.save(thumb_data, thumb_img.format)
         thumb_file = InMemoryUploadedFile(
             file=thumb_data,
@@ -119,7 +124,7 @@ def recipe_thumbnail_updater(sender: type[Recipe], instance: Recipe, **kwargs):
             size=sys.getsizeof(thumb_data),
             charset=None,
         )
-        return thumb_file
+        return cast(FileDescriptor, thumb_file)
 
     try:
         existing = sender.objects.get(id=instance.id)
@@ -131,7 +136,9 @@ def recipe_thumbnail_updater(sender: type[Recipe], instance: Recipe, **kwargs):
         # Instance hero image has changed
         if not existing.hero_image == instance.hero_image:
             if not instance.hero_image:  # hero image is being removed
-                instance.thumbnail = instance.hero_image  # set blank
+                instance.thumbnail = cast(
+                    FileDescriptor, instance.hero_image
+                )  # set blank
             else:
                 instance.thumbnail = make_thumbnail(instance.hero_image)
             instance._replaced_image_fields = [existing.hero_image, existing.thumbnail]
