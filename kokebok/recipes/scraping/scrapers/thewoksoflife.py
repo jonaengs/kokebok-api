@@ -7,6 +7,7 @@ import extruct
 import requests
 from bs4 import BeautifulSoup
 from recipe_scrapers.thewoksoflife import Thewoksoflife
+
 from recipes.scraping.base import (
     HTML,
     UNIT_STRINGS,

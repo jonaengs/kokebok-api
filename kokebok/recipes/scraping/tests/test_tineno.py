@@ -2,6 +2,7 @@ import textwrap
 
 from bs4 import BeautifulSoup, Tag
 from django.test import TestCase
+
 from recipes.scraping.scrapers.tineno import TineNoScraper
 from recipes.scraping.tests._utils import inject_base_tests, with_params
 

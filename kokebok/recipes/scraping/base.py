@@ -4,6 +4,7 @@ from typing import Protocol
 from django.forms import ValidationError
 from ninja import ModelSchema
 from recipe_scrapers._abstract import AbstractScraper
+
 from recipes.models import Recipe, RecipeIngredient
 
 # TODO: Make sure all keys in this dict are members of RecipeIngrediet.Units

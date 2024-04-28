@@ -1,4 +1,5 @@
 import requests
+
 from recipes.models import Recipe
 from recipes.scraping import get_scraper
 

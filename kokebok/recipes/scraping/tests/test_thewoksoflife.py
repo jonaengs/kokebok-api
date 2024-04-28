@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.test import TestCase
+
 from recipes.scraping.scrapers.thewoksoflife import TheWoksOfLifeScraper
 from recipes.scraping.tests._base_scraper_test import BaseScraperTest
 from recipes.scraping.tests._utils import inject_base_tests, with_params

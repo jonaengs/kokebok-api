@@ -4,6 +4,7 @@ import recipe_scrapers
 from recipe_scrapers import scrape_html, scrape_me
 from recipe_scrapers._abstract import AbstractScraper
 from recipe_scrapers._utils import get_host_name
+
 from recipes.scraping.base import (
     UNIT_STRINGS,
     MyScraper,
@@ -13,7 +14,9 @@ from recipes.scraping.base import (
 from recipes.scraping.registry import _registry
 
 
-def parse_ingredient_string(s: str, group: str | None = None) -> ScrapedRecipeIngredient:
+def parse_ingredient_string(
+    s: str, group: str | None = None
+) -> ScrapedRecipeIngredient:
     """
     Tries matching the ingredient string against:
     "<amt> <unit> <ingredient_name>"

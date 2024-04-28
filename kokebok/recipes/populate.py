@@ -1,6 +1,6 @@
 from recipes.api_schemas import FullRecipeCreationSchema, RecipeIngredientCreationSchema
-from recipes.services import create_recipe
 from recipes.models import Ingredient, Recipe, RecipeIngredient
+from recipes.services import create_recipe
 
 _ingredients = [
     Ingredient(id=1001, name_no="fisk", name_de="fisch"),
@@ -35,7 +35,7 @@ _recipes = [
                 name_in_recipe="Zwei in Scheiben geschnittene Karotten",
                 is_optional=True,
             ),
-        ]
+        ],
     ),
     FullRecipeCreationSchema(
         title="Salzwasser",
@@ -49,7 +49,7 @@ _recipes = [
                 base_ingredient_id=1003,
                 name_in_recipe="Ein Teelöffel Salz",
             ),
-        ]
+        ],
     ),
     FullRecipeCreationSchema(
         title="Pannekaker",
@@ -79,9 +79,10 @@ _recipes = [
                 base_amount=0,
                 unit="",
             ),
-        ]
+        ],
     ),
 ]
+
 
 def insert_dummy_data(clear_existing=False):
     if clear_existing:
@@ -92,8 +93,4 @@ def insert_dummy_data(clear_existing=False):
         ingredient.save()
 
     for recipe_data in _recipes:
-        create_recipe(
-            recipe_data,
-            None
-        )
-        
+        create_recipe(recipe_data, None)

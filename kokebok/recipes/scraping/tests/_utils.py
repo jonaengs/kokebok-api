@@ -3,6 +3,7 @@ from typing import Any, Callable
 
 from django.test import TestCase
 from parameterized import parameterized_class
+
 from recipes.scraping.tests._base_scraper_test import BaseScraperTest
 
 DOCS_DIR = Path("recipes/scraping/tests/html")

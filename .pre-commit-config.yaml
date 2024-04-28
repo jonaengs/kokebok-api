@@ -1,7 +1,6 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
-    # entry: kokebok
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
@@ -9,20 +8,17 @@ repos:
     -   id: check-added-large-files
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.1.0
-    # entry: kokebok
     hooks:
     -   id: flake8
         exclude: .*test_.*\.py
         args: [--config, kokebok/setup.cfg]
 -   repo: https://github.com/psf/black
     rev: 23.9.1
-    # entry: kokebok
     hooks:
       - id: black
         args: [--config, kokebok/pyproject.toml]
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.5.1
-    # entry: kokebok
     hooks:
         - id: mypy
           additional_dependencies: [
@@ -35,7 +31,6 @@ repos:
           # because mypy doesn't have 'force-exclude' like black does
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0
-    # entry: kokebok
     hooks:
     -   id: isort
         exclude: .*\/migrations\/.*

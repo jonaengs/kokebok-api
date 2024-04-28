@@ -8,6 +8,7 @@ import extruct
 import requests
 from bs4 import BeautifulSoup
 from recipe_scrapers.tineno import TineNo
+
 from recipes.scraping.base import (
     HTML,
     IngredientGroupDict,

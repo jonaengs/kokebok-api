@@ -1,4 +1,5 @@
 from ninja import Field, ModelSchema, Schema
+
 from recipes.models import Ingredient, Recipe, RecipeIngredient
 
 # Terminology:

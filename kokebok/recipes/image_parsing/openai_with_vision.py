@@ -116,7 +116,6 @@ model = "gpt-4-turbo"
 price_1k_tokens = 0.01  # in dollars
 
 
-
 def image_to_json(img_data: bytes, user_hint: str = "") -> str:
     full_user_text = USER_HINT_PREAMBLE.format(HINT=user_hint) if user_hint else ""
 

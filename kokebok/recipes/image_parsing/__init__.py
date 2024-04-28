@@ -4,6 +4,8 @@ from collections import defaultdict
 from typing import TypedDict, get_args, get_type_hints
 
 from django.core.exceptions import ImproperlyConfigured
+
+from kokebok import settings
 from recipes.image_parsing.example_data import (
     example_input_pannekaker_med_fyll as example_recipe_text,
 )
@@ -14,8 +16,6 @@ from recipes.image_parsing.openai_with_vision import image_to_json
 from recipes.image_parsing.text_parsing import text_to_recipe
 from recipes.scraping import parse_ingredient_string
 from recipes.scraping.base import ScrapedRecipe, ScrapedRecipeIngredient
-
-from kokebok import settings
 
 if settings.USE_OLD_IMG_PARSING and settings.OCR_ENABLED:
     if settings.OCR_PROVIDER == "Google":

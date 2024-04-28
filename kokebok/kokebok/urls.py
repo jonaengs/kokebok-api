@@ -1,12 +1,13 @@
 from functools import wraps
 
-from core.auth_api import router as auth_router
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpRequest
 from django.urls import path
 from ninja import NinjaAPI
+
+from core.auth_api import router as auth_router
 from recipes.api import router as recipes_router
 
 

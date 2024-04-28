@@ -2,15 +2,17 @@ import io
 from itertools import chain, groupby
 
 import ninja
+import requests
+from django.conf import settings
+from django.core.files.images import ImageFile
 from django.db import transaction
 from django.forms import ValidationError
-from django.core.files.images import ImageFile
 from django.shortcuts import get_object_or_404
 from ninja import File, Router
 from ninja.files import UploadedFile
 from ninja.security import django_auth
-import requests
-from recipes.embedding import embed_query
+from pgvector.django import CosineDistance
+
 from recipes.api_schemas import (
     FullRecipeCreationSchema,
     FullRecipeDetailSchema,
@@ -20,14 +22,12 @@ from recipes.api_schemas import (
     IngredientDetailSchema,
     IngredientUpdateSchema,
 )
+from recipes.embedding import embed_query
 from recipes.image_parsing import parse_img
 from recipes.models import Ingredient, Recipe, RecipeEmbedding, RecipeIngredient
 from recipes.scraping import scrape
 from recipes.scraping.base import IngredientGroupDict, ScrapedRecipe
 from recipes.services import create_recipe, get_recipe_embeddings, update_recipe
-from pgvector.django import CosineDistance
-
-from django.conf import settings
 
 router = Router(
     auth=ninja.constants.NOT_SET if settings.DEBUG else django_auth, tags=["recipes"]

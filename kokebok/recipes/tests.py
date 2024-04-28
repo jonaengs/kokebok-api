@@ -9,6 +9,8 @@ from django.forms import ValidationError
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from ninja.responses import NinjaJSONEncoder
+
+from kokebok import settings
 from recipes.api import recipe_update
 from recipes.api_schemas import (
     FullRecipeDetailSchema,
@@ -18,8 +20,6 @@ from recipes.api_schemas import (
     RecipeIngredientCreationSchema,
 )
 from recipes.models import Ingredient, Recipe, RecipeIngredient
-
-from kokebok import settings
 
 
 def mock_embed(*op_texts: str | None) -> list[list[float]]:
@@ -236,9 +236,13 @@ class APITests(TestCase):
             ri1.refresh_from_db()
         with self.assertRaises(RecipeIngredient.DoesNotExist):
             ri2.refresh_from_db()
-        renamed_ri = RecipeIngredient.objects.get(Q(recipe_id=rec.id) & Q(name_in_recipe="renamed"))
+        renamed_ri = RecipeIngredient.objects.get(
+            Q(recipe_id=rec.id) & Q(name_in_recipe="renamed")
+        )
         self.assertEqual(renamed_ri.base_ingredient_id, ingr1.id)
-        added_ri = RecipeIngredient.objects.get(Q(recipe_id=rec.id) & Q(name_in_recipe="created"))
+        added_ri = RecipeIngredient.objects.get(
+            Q(recipe_id=rec.id) & Q(name_in_recipe="created")
+        )
         self.assertEqual(added_ri.base_ingredient_id, ingr2.id)
 
         # Check that response data matches db data
