@@ -64,19 +64,19 @@ class ScrapedRecipe(ModelSchema):
 
     def clean(self):
         if self.language and self.language not in Recipe.Languages.codes():
-            old_language = self.language
-            # in case en-US an such
+            entire_lang_string = self.language
+            # in case of en-US, nb-no
             if "-" in self.language:
-                try:
-                    self.language = self.language.split("-")[0]
-                    return self.clean()
-                except ValidationError as e:
-                    self.language = old_language
-                    raise e
-            # raise ValidationError(f"Illegal language: {self.language}")
-            self.language = ""
-            # TODO: Implement the logging here or fix the error caused by "nb" being selected as language
-            # logger.warning(f"Illegal language detected: {self.language}, setting lang to empty string")
+                parts = self.language.split("-")
+                for part in parts:
+                    self.language = part
+                    try:
+                        return self.clean()
+                    except ValidationError as e:
+                        print(e)
+            raise ValidationError(
+                f"Illegal language: {self.language} (entire={entire_lang_string})"
+            )
         for group_name, ingredients in self.ingredients.items():
             for ingr in ingredients:
                 ingr.clean()

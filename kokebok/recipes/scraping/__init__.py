@@ -94,7 +94,7 @@ def scrape(url: str | None, html: str | None = None) -> ScrapedRecipe:
 
 class RegistryLookupResult(NamedTuple):
     host_in_my_registry: bool
-    host_in_scrapers_registry: bool
+    host_in_scrapers_registry: bool  # recipe scrapers has its own "registry" of supported sites
     scraper: AbstractScraper | MyScraper
 
 
