@@ -3,7 +3,6 @@ from itertools import chain, groupby
 
 import ninja
 import requests
-from django.conf import settings
 from django.core.files.images import ImageFile
 from django.db import transaction
 from django.forms import ValidationError
@@ -13,6 +12,7 @@ from ninja.files import UploadedFile
 from ninja.security import django_auth
 from pgvector.django import CosineDistance
 
+from kokebok import settings
 from recipes.api_schemas import (
     FullRecipeCreationSchema,
     FullRecipeDetailSchema,

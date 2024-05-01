@@ -24,6 +24,7 @@ google-cloud-vision = "^3.4.4"
 openai = "0.28"
 pgvector = "^0.2.5"
 cohere = "^5.1.7"
+pypandoc = "^1.13"
 
 
 [tool.poetry.group.dev.dependencies]

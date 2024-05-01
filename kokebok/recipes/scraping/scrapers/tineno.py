@@ -1,9 +1,8 @@
 import json
 import re
 from collections import defaultdict
-from typing import Any
+from functools import lru_cache
 
-import bs4
 import extruct
 import requests
 from bs4 import BeautifulSoup
@@ -15,18 +14,13 @@ from recipes.scraping.base import (
     MyScraperProtocol,
     ScrapedRecipeIngredient,
 )
-
-# Tests TODO:
-# * Check that methods which return HTML content return safe HTML?
-
-# TODO: Consider changing parser to lxml for improved performance
+from recipes.scraping.utils import html_to_markdown
 
 
 class TineNoScraper(MyScraperProtocol, TineNo):
     def __init__(self, url: str | None, html: str | None = None) -> None:
-        # We basically parse the page three times because
-        # recipe_scrapers doesn't give enough information
-        self.page_raw = html or requests.get(url).content.decode("utf-8")  # type: ignore[arg-type] # noqa
+        assert url or html, "Either url or html must be provided"
+        self.page_raw = html or requests.get(url).content.decode("utf-8")  # type: ignore[arg-type] # if not html, url must be string
         self.page_soup = BeautifulSoup(self.page_raw, "html.parser")
 
         json_ld_extract = extruct.extract(self.page_raw, syntaxes=["json-ld"])
@@ -45,8 +39,6 @@ class TineNoScraper(MyScraperProtocol, TineNo):
         found = self.page_soup.find_all(attrs={"data-json": True})
         assert len(found) == 1, found
         ingredients_data = json.loads(found[0]["data-json"])
-
-        # pprint(ingredients_data)
 
         result: IngredientGroupDict = defaultdict(list)
         for group in ingredients_data:
@@ -85,23 +77,11 @@ class TineNoScraper(MyScraperProtocol, TineNo):
     def my_preamble(self) -> str:
         return self.json_ld_data["description"]
 
+    @lru_cache(maxsize=1)  # expensive call so we cache it. Mostly relevant for testing
     def my_content(self) -> HTML:
-        def extract_tips(tags: bs4.ResultSet[Any]):
-            contents = "".join(
-                "\n\n" + tag.text.replace("Tips", "").strip() for tag in tags
-            )
-            html_str = f"<div><h4>Tips</h4>{contents}</div>"
-            return html_str
-
         # Extract the tip section divs
         # First class is for end-of-article tips, second is for instruction tips
         tip_tags = self.page_soup.find_all(
             attrs={"class": ["m-tip", "o-recipe-steps--group__list__tip"]}
         )
-
-        # Prettify html string, then strip indentation
-        formatted = BeautifulSoup(
-            extract_tips(tip_tags), "html.parser", preserve_whitespace_tags=["h4"]
-        ).prettify()
-        formatted = "\n".join(line.strip() for line in formatted.split("\n"))
-        return formatted
+        return "\n\n".join(html_to_markdown(str(tag)) for tag in tip_tags)

@@ -26,10 +26,12 @@ class Recipe(models.Model):
         def codes(cls) -> list[str]:
             return [ch[0] for ch in cls.choices]
 
+    # Text fields
     title = models.CharField(max_length=200, blank=False)
     preamble = models.TextField(blank=True, null=True, default=None)
     instructions = models.TextField(blank=True, null=True, default=None)
     rest_text = models.TextField(blank=True, null=True, default=None)
+
     created_at = models.DateTimeField(auto_now_add=True)
     language = models.CharField(
         max_length=8, choices=Languages.choices, blank=True, default=None, null=True

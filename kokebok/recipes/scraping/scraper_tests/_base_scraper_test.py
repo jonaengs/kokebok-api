@@ -1,7 +1,5 @@
 from unittest import mock
 
-from bs4 import BeautifulSoup
-
 from recipes import scraping
 
 
@@ -42,8 +40,7 @@ class BaseScraperTest:
     def test_content_text(self):
         self.maxDiff = None
         content = self.scraper.my_content()
-        content_text = BeautifulSoup(content, "html.parser").text.strip()
-        content_text = "\n".join(line.strip() for line in content_text.split("\n"))
+        content_text = "\n".join(line.strip() for line in content.split("\n")).strip()
         # Uncomment these lines for debugging test failures
         # print("===================")
         # print(content_text)

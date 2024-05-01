@@ -4,9 +4,9 @@ from typing import Any, Callable
 from django.test import TestCase
 from parameterized import parameterized_class
 
-from recipes.scraping.tests._base_scraper_test import BaseScraperTest
+from recipes.scraping.scraper_tests._base_scraper_test import BaseScraperTest
 
-DOCS_DIR = Path("recipes/scraping/tests/html")
+DOCS_DIR = Path("recipes/scraping/scraper_tests/html")
 
 
 TestParams = dict[str, dict[str, Any]]

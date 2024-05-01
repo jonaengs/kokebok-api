@@ -1,8 +1,7 @@
 import re
 from collections import defaultdict
-from copy import deepcopy
+from functools import lru_cache
 
-import bs4
 import extruct
 import requests
 from bs4 import BeautifulSoup
@@ -15,10 +14,7 @@ from recipes.scraping.base import (
     MyScraperProtocol,
     ScrapedRecipeIngredient,
 )
-from recipes.scraping.utils import recursive_strip_attrs
-
-# NOTE: The base Thewoksoflife class does not support the description method.
-# We could probably make a PR using the preamble code
+from recipes.scraping.utils import html_to_markdown
 
 
 class TheWoksOfLifeScraper(MyScraperProtocol, Thewoksoflife):
@@ -101,26 +97,14 @@ class TheWoksOfLifeScraper(MyScraperProtocol, Thewoksoflife):
                 return node["description"]
         return ""
 
+    @lru_cache(maxsize=1)  # expensive call so we cache it. Mostly relevant for testing
     def my_content(self) -> HTML:
         tips_div = self.page_soup.find(attrs={"class": "wprm-recipe-notes-container"})
-        if tips_div:
-            # Don't handle bs4.NavigableString
-            assert isinstance(tips_div, bs4.Tag), tips_div
-            tips_div = deepcopy(tips_div)
-            recursive_strip_attrs(tips_div, None)
+        tips = html_to_markdown(str(tips_div))
 
         # Select text and images from the article
         article_tags = self.page_soup.select(
             "article > div > p, article > div > figure"
         )
-        article_contents = [
-            recursive_strip_attrs(deepcopy(tag), attrs=["class", "id"])
-            for tag in article_tags
-        ]
-
-        return (
-            "<div>\n"
-            + (f"{tips_div}\n\n" if tips_div else "")
-            + "\n".join(map(str, article_contents))
-            + "\n</div>"
-        )
+        article_contents = [html_to_markdown(str(tag)) for tag in article_tags]
+        return (f"{tips}\n\n" if tips else "") + "\n".join(map(str, article_contents))

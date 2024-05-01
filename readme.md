@@ -24,6 +24,8 @@ To quickly test out smaller scripts within the Django environment, run `python m
 
 There's a script called `populate.py` inside the recipes app which can be ran through the django shell to quickly generate some test data.
 
+Note: We use `pandoc` for converting html to markdown. So if you want to use the recipe scraping functionality locally, either install pandoc on your machine or use the docker image.
+
 ## Deploying
 Make sure that you've configured the app correctly before deploying. The simplest way to do this is to use a `.env` file to store all configuration settings. The file is already in `.gitignore` rules. The `.env.dev` file contains example values for all env variables used, though the values there are meant for local development and are not suited for use in a production environment.
 

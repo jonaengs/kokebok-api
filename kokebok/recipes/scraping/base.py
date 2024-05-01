@@ -62,6 +62,9 @@ class ScrapedRecipe(ModelSchema):
             "other_source",
         ]
 
+    # error if given kwargs not in the schema
+    model_config = {"extra": "forbid"}
+
     def clean(self):
         if self.language and self.language not in Recipe.Languages.codes():
             entire_lang_string = self.language

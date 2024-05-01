@@ -9,6 +9,7 @@ ENV PYTHONUNBUFFERED 1
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
+    pandoc \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /code
@@ -16,7 +17,7 @@ RUN mkdir -p /code
 WORKDIR /code
 
 RUN pip install poetry
-COPY pyproject.toml poetry.lock /code/
+COPY pyproject.toml poetry.lock /code
 RUN poetry config virtualenvs.create false
 RUN poetry install --only main --no-root --no-interaction
 COPY . /code
