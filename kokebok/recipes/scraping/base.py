@@ -66,17 +66,16 @@ class ScrapedRecipe(ModelSchema):
     model_config = {"extra": "forbid"}
 
     def clean(self):
+        """Note: Will try modifying the language if it's not a valid language code."""
         if self.language and self.language not in Recipe.Languages.codes():
-            entire_lang_string = self.language
-            # in case of en-US, nb-no
+            entire_lang_string = self.language.lower()
+            # handle cases like "en-US", "nb-NO"
             if "-" in self.language:
-                parts = self.language.split("-")
+                parts = entire_lang_string.split("-")
                 for part in parts:
-                    self.language = part
-                    try:
+                    if part in Recipe.Languages.codes():
+                        self.language = part
                         return self.clean()
-                    except ValidationError as e:
-                        print(e)
             raise ValidationError(
                 f"Illegal language: {self.language} (entire={entire_lang_string})"
             )

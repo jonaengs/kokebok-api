@@ -198,6 +198,11 @@ def scrape_recipe_bad(request, url: str):
         return 403, "Recipe with given url already exists."
 
     scraped_recipe = scrape(url)
+    try:
+        scraped_recipe.clean()
+    except ValidationError as e:
+        return 403, {"message": e.message}
+
     scraped_dict = scraped_recipe.dict()
     ingredients: IngredientGroupDict = scraped_dict.pop("ingredients")
 
@@ -210,15 +215,18 @@ def scrape_recipe_bad(request, url: str):
 
     with transaction.atomic():
         recipe = Recipe.objects.create(**scraped_dict)
+        recipe_lang = scraped_dict.get("language", "en")
+        print(recipe_lang)
 
         ingredients_list = chain(*ingredients.values())
         for ingredient in ingredients_list:
-            ingredient_dict = ingredient.dict()
-            ingredient_name_no = ingredient_dict.pop("base_ingredient_str")
+            ingredient_dict = ingredient
+            ingredient_name = ingredient_dict.pop("base_ingredient_str")
+            name_arg_dict = {f"name_{recipe_lang}": ingredient_name}
             try:
-                base_ingredient = Ingredient.objects.get(name_no=ingredient_name_no)
+                base_ingredient = Ingredient.objects.get(**name_arg_dict)
             except Ingredient.DoesNotExist:
-                base_ingredient = Ingredient.objects.create(name_no=ingredient_name_no)
+                base_ingredient = Ingredient.objects.create(**name_arg_dict)
             RecipeIngredient.objects.create(
                 recipe=recipe, **ingredient_dict, base_ingredient=base_ingredient
             )

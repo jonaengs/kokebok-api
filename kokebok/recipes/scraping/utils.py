@@ -1,10 +1,10 @@
 from functools import lru_cache, wraps
-from types import FunctionType
 from typing import Any, Iterable
 
 import bs4
 import pypandoc
 from recipe_scrapers._abstract import AbstractScraper
+from recipe_scrapers._exceptions import SchemaOrgException
 
 
 def html_to_markdown(html: str) -> str:
@@ -41,21 +41,12 @@ def _not_impl_exc_silencer(method):
     def wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
+        except SchemaOrgException:
+            return None
         except NotImplementedError:
             return None
 
     return wrapper
-
-
-class RecipeScraperWrapperMeta(type):
-    def __new__(meta, classname, bases, classDict):
-        newClassDict = {}
-        for attributeName, attribute in classDict.items():
-            if isinstance(attribute, FunctionType):
-                # replace it with a wrapped version
-                attribute = _not_impl_exc_silencer(attribute)
-            newClassDict[attributeName] = attribute
-        return type.__new__(meta, classname, bases, newClassDict)
 
 
 class RecipeScraperWrapper(AbstractScraper):
@@ -67,12 +58,18 @@ class RecipeScraperWrapper(AbstractScraper):
     .all_text()  which attempts to return all the text describing the recipe, converted from html into markdown
     """
 
-    __metaclass__ = RecipeScraperWrapperMeta
-
     def __init__(self, scraper: AbstractScraper):
         # Make sure we don't set the wrapped scraper to an attribute already in use
         assert not hasattr(scraper, "_scraper")
         self._scraper = scraper
+
+        # Patch the scraper's methods so that it doesn't raise exceptions when calling unimplemented or unsupported methods
+        for attr_name in dir(AbstractScraper):
+            if callable(
+                getattr(AbstractScraper, attr_name)
+            ) and not attr_name.startswith("_"):
+                attr = getattr(scraper, attr_name)
+                setattr(scraper, attr_name, _not_impl_exc_silencer(attr))
 
     def __getattribute__(self, name: str) -> Any:
         """Try passing attribute requests to the wrapped scraper"""
