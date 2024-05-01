@@ -39,6 +39,7 @@ def recursive_strip_attrs(tag: bs4.Tag, *whitelist: str) -> bs4.Tag:
 def _not_impl_exc_silencer(method):
     @wraps(method)
     def wrapper(*args, **kwargs):
+        # TODO: Log the exception being thrown
         try:
             return method(*args, **kwargs)
         except SchemaOrgException:

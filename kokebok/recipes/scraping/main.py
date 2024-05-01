@@ -11,13 +11,11 @@ from recipes.scraping.base import (
     ScrapedRecipe,
     ScrapedRecipeIngredient,
 )
-from recipes.scraping.registry import _registry
+from recipes.scraping.registry import registry
 from recipes.scraping.utils import RecipeScraperWrapper
 
 
-def parse_ingredient_string(
-    s: str, group: str | None = None
-) -> ScrapedRecipeIngredient:
+def parse_ingredient_string(s: str, group: str = "") -> ScrapedRecipeIngredient:
     """
     Tries matching the ingredient string against:
     "<amt> <unit> <ingredient_name>"
@@ -57,17 +55,17 @@ def scrape(
     if in_my_registry:
         scraped_ingredients = scraper.my_ingredient_groups()
     else:
-        wrapped
-        try:
-            groups = wrapped.ingredient_groups()
+        groups = wrapped.ingredient_groups()
+        if groups:
             scraped_ingredients = {
-                group: [
-                    parse_ingredient_string(ingredient, group)
+                group.purpose
+                or "": [
+                    parse_ingredient_string(ingredient, group.purpose or "")
                     for ingredient in group.ingredients
                 ]
                 for group in groups
             }
-        except:  # noqa
+        else:
             scraped_ingredients = {
                 "": [
                     parse_ingredient_string(ingredient)
@@ -110,11 +108,11 @@ class RegistryLookupResult(NamedTuple):
 # TODO: Redesign this interface
 def get_scraper(url: str | None, html=None, host=None) -> RegistryLookupResult:
     host = host or (get_host_name(url) if url else "")
-    if host in _registry:
+    if host in registry:
         return RegistryLookupResult(
             host_in_my_registry=True,
             host_in_scrapers_registry=True,
-            scraper=_registry[host](url, html),
+            scraper=registry[host](url, html),
         )
     elif host in recipe_scrapers.SCRAPERS:
         return RegistryLookupResult(

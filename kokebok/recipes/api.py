@@ -11,6 +11,7 @@ from ninja import File, Router
 from ninja.files import UploadedFile
 from ninja.security import django_auth
 from pgvector.django import CosineDistance
+from PIL import Image, UnidentifiedImageError
 
 from kokebok import settings
 from recipes.api_schemas import (
@@ -180,7 +181,7 @@ def scrape_recipe(request, url: str):
     try:
         scraped_data.clean()
     except ValidationError as e:
-        return 403, {"message": e.message}
+        return 403, {"message": str(e)}
 
     return scraped_data
 
@@ -201,25 +202,35 @@ def scrape_recipe_bad(request, url: str):
     try:
         scraped_recipe.clean()
     except ValidationError as e:
-        return 403, {"message": e.message}
+        return 403, {"message": str(e)}
 
     scraped_dict = scraped_recipe.dict()
     ingredients: IngredientGroupDict = scraped_dict.pop("ingredients")
 
     hero_image_link = scraped_dict.pop("hero_image_link")
     if hero_image_link:
+        # TODO: try bypassing cloudflare by impersonating the user who made this request
         image_data = requests.get(hero_image_link).content
-        image_name = hero_image_link.split("/")[-1]  # hacky but it works for now
-        hero_image = ImageFile(io.BytesIO(image_data), name=image_name)
+        try:
+            Image.open(io.BytesIO(image_data))
+            image_name = hero_image_link.split("/")[-1]  # hacky but it works for now
+            hero_image = ImageFile(io.BytesIO(image_data), name=image_name)
+        except UnidentifiedImageError:
+            hero_image = None
         scraped_dict["hero_image"] = hero_image
 
+    # TODO: Handle deleting images if we get a ValidationError after saving recipe
     with transaction.atomic():
-        recipe = Recipe.objects.create(**scraped_dict)
+        recipe = Recipe(**scraped_dict)
+        recipe.full_clean()
+        recipe.save()
+
         recipe_lang = scraped_dict.get("language", "en")
-        print(recipe_lang)
 
         ingredients_list = chain(*ingredients.values())
+        recipe_ingredients: list[RecipeIngredient] = []
         for ingredient in ingredients_list:
+            # find or create base ingredient
             ingredient_dict = ingredient
             ingredient_name = ingredient_dict.pop("base_ingredient_str")
             name_arg_dict = {f"name_{recipe_lang}": ingredient_name}
@@ -227,11 +238,17 @@ def scrape_recipe_bad(request, url: str):
                 base_ingredient = Ingredient.objects.get(**name_arg_dict)
             except Ingredient.DoesNotExist:
                 base_ingredient = Ingredient.objects.create(**name_arg_dict)
-            RecipeIngredient.objects.create(
+
+            # Create recipe ingredient
+            ri = RecipeIngredient(
                 recipe=recipe, **ingredient_dict, base_ingredient=base_ingredient
             )
+            ri.full_clean()
+            recipe_ingredients.append(ri)
 
         embeddings = get_recipe_embeddings(recipe)
+        for ri in recipe_ingredients:
+            ri.save()
         for emb in embeddings:
             emb.save()
 

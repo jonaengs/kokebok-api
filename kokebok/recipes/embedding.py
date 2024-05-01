@@ -10,7 +10,7 @@ def _embed_docs_cohere(texts: Iterable[str]):
             len(text) > 1024
         ):  # conservatively estimate 2 chars per token, keeping within 512 tokens per chunk
             chunks += [
-                s
+                s.strip()
                 for s in text.strip().split("\n")
                 if s.strip() and len(s) > 12  # arbitrary number
             ]
@@ -21,7 +21,7 @@ def _embed_docs_cohere(texts: Iterable[str]):
     co = cohere.Client()
     response = co.embed(
         model="embed-multilingual-v3.0",
-        texts=chunks,
+        texts=chunks[:96],
         input_type="search_document",
         truncate="END",
         batching=False,

@@ -2,7 +2,6 @@ import io
 import sys
 from typing import cast
 
-from django.core.files.images import ImageFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
@@ -11,7 +10,7 @@ from django.db.models.fields.files import FileDescriptor, ImageFieldFile
 from django.dispatch import receiver
 from django.forms import ValidationError
 from pgvector.django import IvfflatIndex, VectorField
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 
 class Recipe(models.Model):
@@ -88,6 +87,13 @@ class Recipe(models.Model):
             ),
         ]
 
+    def clean(self, *args, **kwargs):
+        if self.hero_image:
+            try:
+                Image.open(self.hero_image)
+            except UnidentifiedImageError:
+                raise ValidationError("Hero image must be a valid image file")
+
     def __repr__(self) -> str:
         return f"<Recipe: {self.title}>"
 
@@ -109,41 +115,47 @@ def recipe_thumbnail_updater(sender: type[Recipe], instance: Recipe, **kwargs):
     """Generates the thumbnail of recipe hero image on hero image addition/change"""
     # Thanks to https://stackoverflow.com/a/7934958 for idea of using pre_save signal
 
-    def make_thumbnail(image_field: ImageFile):
+    def make_thumbnail(image: ImageFieldFile):
         # Thanks to https://stackoverflow.com/a/12309950 for implementation
-        thumb_img = Image.open(image_field)
+        print(image.name)
+        print(image.size)
+        img = image.open("rb")
+        for line in img:
+            print(line)
+
+        thumb_img = Image.open(img)
         thumb_img.thumbnail((512, 512))  # TODO: Figure out good thumbnail size
         thumb_data = io.BytesIO()
         # Use same format for thumbnail as for image
         assert thumb_img.format
-        assert image_field.name
+        assert image.name
         thumb_img.save(thumb_data, thumb_img.format)
         thumb_file = InMemoryUploadedFile(
             file=thumb_data,
             field_name=None,
-            name=image_field.name.split("/")[-1],
+            name=image.name.split("/")[-1],
             content_type=Image.MIME[thumb_img.format],
             size=sys.getsizeof(thumb_data),
             charset=None,
         )
         return cast(FileDescriptor, thumb_file)
 
-    try:
-        existing = sender.objects.get(id=instance.id)
-    except sender.DoesNotExist:
-        # Instance is being created, so generate thumbnail
-        if instance.hero_image:
-            instance.thumbnail = make_thumbnail(instance.hero_image)
-    else:
-        # Instance hero image has changed
-        if not existing.hero_image == instance.hero_image:
-            if not instance.hero_image:  # hero image is being removed
-                instance.thumbnail = cast(
-                    FileDescriptor, instance.hero_image
-                )  # set blank
-            else:
-                instance.thumbnail = make_thumbnail(instance.hero_image)
-            instance._replaced_image_fields = [existing.hero_image, existing.thumbnail]
+    # try:
+    #     existing = sender.objects.get(pk=instance.pk)
+    # except sender.DoesNotExist:
+    #     # Instance is being created, so generate thumbnail
+    #     if instance.hero_image:
+    #         instance.thumbnail = make_thumbnail(instance.hero_image)
+    # else:
+    #     # Instance hero image has changed
+    #     if not existing.hero_image == instance.hero_image:
+    #         if not instance.hero_image:  # hero image is being removed
+    #             instance.thumbnail = cast(
+    #                 FileDescriptor, instance.hero_image
+    #             )  # set blank
+    #         else:
+    #             instance.thumbnail = make_thumbnail(instance.hero_image)
+    #         instance._replaced_image_fields = [existing.hero_image, existing.thumbnail]
 
 
 # TODO: see if this can be done in the delete method using transaction.on_commit
@@ -226,8 +238,8 @@ class RecipeIngredient(models.Model):
     name_in_recipe = models.CharField(max_length=128, blank=False)
     is_optional = models.BooleanField(default=False)
 
-    # Name of the sub-recipe the ingredient is part of
-    group_name = models.CharField(max_length=128, blank=True, null=True, default=None)
+    # Name of the sub-recipe the ingredient is part of. Not nullable because it may be used as a dictionary key
+    group_name = models.CharField(max_length=128, blank=True, default="")
 
     # The amount to use when making the base recipe
     base_amount = models.FloatField(
@@ -242,13 +254,6 @@ class RecipeIngredient(models.Model):
         choices=Units.choices,
         default=Units.BLANK,
     )
-
-    class Meta:
-        constraints = [
-            models.CheckConstraint(
-                check=~Q(group_name__exact=""), name="group_name not empty"
-            )
-        ]
 
     def __repr__(self) -> str:
         return f"<{self.recipe.title}: {self.name_in_recipe}>"

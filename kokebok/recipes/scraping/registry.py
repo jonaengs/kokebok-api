@@ -10,7 +10,7 @@ Registry of custom recipe site scrapers.
 If you add another scraper it must be registered here to get used
 for scraping.
 """
-_registry: dict[str, type[MyScraper]] = {
+registry: dict[str, type[MyScraper]] = {
     #
     TineNoScraper.host(): TineNoScraper,
     TheWoksOfLifeScraper.host(): TheWoksOfLifeScraper,
